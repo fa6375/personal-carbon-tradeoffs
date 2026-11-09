@@ -1,0 +1,13 @@
+export type IconName =
+  | 'home'
+  | 'compare'
+  | 'bookmark'
+  | 'settings'
+  | 'menu'
+  | 'close'
+  | 'leaf'
+  | 'cloud'
+  | 'wallet'
+  | 'clock'
+  | 'arrow-right'
+  | 'info'
