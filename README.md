@@ -2,7 +2,7 @@
 
 Carbon Choices is a mobile-first web application that helps people understand and manage the environmental impact of their everyday decisions. It brings three feature areas together in one product: comparing everyday choices, setting carbon reduction goals and tracking personal carbon emissions. It implements the **Personal Carbon Trade-Offs** topic for **ISTE.260 – Designing the User Experience**, Deliverable 2.
 
-> **Status:** early development. The shared frontend shell is in place, and a first interactive version of Carbon Reduction Goals & Recommendations uses temporary sample data. Compare Everyday Choices and Personal Carbon Tracking, the database, the external API integration and localisation are not implemented yet. See [Current Development Status](#current-development-status).
+> **Status:** early development. The shared frontend shell is in place. Carbon Reduction Goals & Recommendations works with temporary sample data, and Personal Carbon Tracking works with activities stored temporarily in the browser. Compare Everyday Choices, the database, the external API integration and localisation are not implemented yet. See [Current Development Status](#current-development-status).
 
 ---
 
@@ -102,11 +102,39 @@ The feature is at `#/goals` ("Carbon goals" in the navigation). It groups the te
 
 ### 3. Personal Carbon Tracking — *Lazar Jovovic*
 
+Lets users record everyday activities (transport, food and home energy), see an estimate of the emissions of each one, and follow how their emissions add up over time and by category.
+
+The feature is at `#/tracking` ("Carbon tracking" in the navigation). It implements the ten screens from Lazar's Deliverable 1 wireframes:
+
+| # | Screen | Where it is |
+|---|---|---|
+| 1 | Carbon Tracking Dashboard | "Dashboard" tab — `TrackingDashboard.tsx` |
+| 2 | Add Activity | "Add activity" button — `AddActivity.tsx` |
+| 3 | Transport Activity Entry | Add activity → Transport — `ActivityEntry.tsx` + `ActivityForm.tsx` |
+| 4 | Food Activity Entry | Add activity → Food — `ActivityEntry.tsx` + `ActivityForm.tsx` |
+| 5 | Home Energy Entry | Add activity → Home energy — `ActivityEntry.tsx` + `ActivityForm.tsx` |
+| 6 | Activity History | "History" tab — `ActivityHistory.tsx` |
+| 7 | Activity Details | Select any activity — `ActivityDetails.tsx` |
+| 8 | Edit Activity | "Edit activity" on the details screen — `EditActivity.tsx` |
+| 9 | Carbon Emissions Breakdown | "Breakdown" tab — `EmissionsBreakdown.tsx` |
+| 10 | No Activities Recorded | Shown on Dashboard, History and Breakdown when nothing is recorded — `NoActivities.tsx` |
+
 | Functionality | Status |
 |---|---|
-| Recording everyday activities (transportation, food, home energy) | 📋 |
-| Calculating and tracking the emissions of recorded activities | 📋 |
-| Viewing tracked emissions over time | 📋 |
+| Recording transport, food and home energy activities, with a live emissions estimate while typing | ✅ |
+| Form validation with error messages next to each field (accepts `12.5` and `12,5`) | ✅ |
+| Activity history, newest first, with text search, category filter and period filter | ✅ |
+| Activity details with a step-by-step explanation of the estimate | ✅ |
+| Editing an activity | ✅ |
+| Deleting an activity with a confirmation dialog | ✅ |
+| Dashboard: emissions this month, daily average, last 7 days, largest source, this month by category, recent activities | ✅ Updates when activities change |
+| Emissions breakdown by category and by source for the last 7 days, last 30 days, this month or all time | ✅ Updates when activities change |
+| Loading, error (with "Try again") and empty states | ✅ |
+| Saving activities in the project database | 📋 Planned — activities are kept in this browser's `localStorage` for now (see [Database](#database)) |
+| Emission factors from an external API or verified dataset | 📋 Planned — illustrative factors for now (see below) |
+| Sharing tracked emissions with Carbon goals as the real baseline | 📋 Planned |
+
+> **How emissions are estimated:** every result is calculated in `src/features/tracking/emissionFactors.ts` with one method: transport = distance × factor ÷ people in the vehicle (cars and motorbikes only), food = servings × factor, home energy = kWh × factor ÷ household size. The factors are **illustrative** rounded averages, not values from a verified dataset, and the interface labels every result as an estimate. They are meant to be replaced by an emission-factor API or dataset.
 
 ### Shared application foundation
 
@@ -117,10 +145,10 @@ The feature is at `#/goals` ("Carbon goals" in the navigation). It groups the te
 | Placeholder pages for Compare journeys, Saved comparisons and Settings, and a "Page not found" page | ✅ |
 | Reusable UI components and design tokens | ✅ |
 | Navigation entry for Goals (`#/goals`) | ✅ |
-| Navigation entry for Tracking | 📋 Not added yet |
+| Navigation entry for Tracking (`#/tracking`) | ✅ |
 | Settings (including language selection) | 📋 (placeholder page at `#/settings`) |
 
-> Navigation currently contains Home, Compare journeys, Saved comparisons, Carbon goals and Settings. The entry for Personal Carbon Tracking will be added when that area is implemented.
+> Navigation currently contains Home, Compare journeys, Saved comparisons, Carbon goals, Carbon tracking and Settings.
 
 ---
 
@@ -152,8 +180,9 @@ Versions are taken from `package.json` and the installed `node_modules`.
 
 Notes:
 
-- There is **no router library**. Navigation uses a small hash-based router in `src/hooks/useHashRoute.ts` (routes: `#/`, `#/compare`, `#/saved`, `#/goals`, `#/settings`).
+- There is **no router library**. Navigation uses a small hash-based router in `src/hooks/useHashRoute.ts` (routes: `#/`, `#/compare`, `#/saved`, `#/goals`, `#/tracking`, `#/settings`).
 - There is **no backend, database, i18n library or test framework** installed yet.
+- Personal Carbon Tracking added **no new dependencies**.
 
 ### Prerequisites
 
@@ -198,6 +227,17 @@ personal-carbon-tradeoffs/
 │   │       ├── stages.ts      #     The five steps and the screens they contain
 │   │       ├── types.ts       #     TypeScript types for the feature
 │   │       └── goals.css      #     Styles for the feature
+│   │   └── tracking/          #   Personal Carbon Tracking (Lazar)
+│   │       ├── components/    #     One component per screen, plus TrackingUi.tsx building blocks
+│   │       ├── activityRepository.ts # Data-access layer (TEMPORARY localStorage implementation)
+│   │       ├── useActivities.ts #   Loading/error state and create/update/delete for screens
+│   │       ├── emissionFactors.ts # ILLUSTRATIVE emission factors and the calculation method
+│   │       ├── stats.ts       #     Totals, periods and groupings for dashboard/breakdown
+│   │       ├── validation.ts  #     Form values, validation and conversion to activities
+│   │       ├── format.ts      #     kg CO₂e, date and plural formatting (Intl, English)
+│   │       ├── categoryIcons.ts #   Icon for each activity category
+│   │       ├── types.ts       #     TypeScript types for the feature
+│   │       └── tracking.css   #     Styles for the feature
 │   ├── hooks/
 │   │   └── useHashRoute.ts    # Minimal hash-based routing
 │   ├── layouts/
@@ -207,6 +247,7 @@ personal-carbon-tradeoffs/
 │   │   ├── ComparePage.tsx    #   Placeholder
 │   │   ├── SavedPage.tsx      #   Placeholder
 │   │   ├── GoalsPage.tsx      #   Carbon goals: step navigation and the Goals screens
+│   │   ├── TrackingPage.tsx   #   Carbon tracking: tabs and the Tracking screens
 │   │   ├── SettingsPage.tsx   #   Placeholder
 │   │   ├── NotFoundPage.tsx
 │   │   └── PlaceholderPage.tsx #   Shared template for unbuilt sections
@@ -308,7 +349,15 @@ API keys, passwords, tokens and other secrets must **never** be committed to the
 
 Persistent storage in the application's own database is a requirement of Deliverable 2: data created by the user must survive a restart, and the main entities must support create, read, update and delete from the interface.
 
-**Current state:** no database has been chosen or implemented. The application stores no data. The carbon plan in the Goals feature is held in memory only and resets when the page is reloaded.
+**Current state:** no database has been chosen or implemented. The carbon plan in the Goals feature is held in memory only and resets when the page is reloaded.
+
+Personal Carbon Tracking reads and writes activities only through the `ActivityRepository` interface in `src/features/tracking/activityRepository.ts`. Its current implementation is a **temporary stand-in**: activities are saved in the browser's `localStorage` under the key `carbon-choices.tracking.activities.v1`. This means:
+
+- activities survive a page reload, but only in that browser on that device;
+- clearing site data deletes them, and they are not shared between users or devices;
+- this does **not** meet the brief's database requirement.
+
+The data model the database will need for this feature is the `Activity` type in `src/features/tracking/types.ts`: an id, a date, an optional note, created/updated timestamps, and category-specific details (transport mode, distance and people; food item and servings; or energy source, kWh and household size). When the backend exists, an API-backed `ActivityRepository` can replace the local one without changing the screens.
 
 When the database is implemented, this section will document:
 
@@ -323,7 +372,7 @@ When the database is implemented, this section will document:
 
 Deliverable 2 requires integration with at least one external REST API whose data is genuinely related to the topic and does real work in the product (for example, providing emission factors, exchange rates or location data), not only decorative content. The integration must handle failure states such as network errors, timeouts, rate limits and empty results, and API keys must be kept out of client-side code.
 
-**Current state:** no external API has been selected or connected. No emissions, cost or travel-time values are calculated. The Goals feature shows temporary sample emission figures from `src/features/goals/sampleData.ts`; everything else is static placeholder text.
+**Current state:** no external API has been selected or connected. The Goals feature shows temporary sample emission figures from `src/features/goals/sampleData.ts`. Personal Carbon Tracking calculates emission estimates from illustrative factors in `src/features/tracking/emissionFactors.ts`; an emission-factor API (for example Climatiq or Carbon Interface, both listed in the course brief) is a candidate for replacing them. No cost or travel-time values are calculated.
 
 When an API is integrated, this section will document which service is used, what it is used for, and how to obtain a key if one is required.
 
@@ -341,7 +390,7 @@ The application must support at least three locales:
 
 The brief also requires that every user-visible string is externalised, that plurals, dates, numbers and currencies use locale-aware formatting, that the HTML `lang` attribute follows the selected locale, and that the chosen locale persists across reloads.
 
-**Current state: localization is not implemented.** The interface is English only, strings are currently written directly in components, in `src/data/homeContent.ts` and in `src/features/goals/` (numbers and dates there already go through `Intl` formatters in `format.ts`, fixed to English), no i18n library is installed, and there is no language switcher. `index.html` sets `lang="en"`.
+**Current state: localization is not implemented.** The interface is English only, strings are currently written directly in components, in `src/data/homeContent.ts`, in `src/features/goals/` and in `src/features/tracking/` (numbers, dates and plurals in both features already go through `Intl` formatters in their `format.ts`, fixed to English), no i18n library is installed, and there is no language switcher. `index.html` sets `lang="en"`.
 
 How to add a new locale will be documented here once the i18n setup is in place.
 
@@ -374,13 +423,22 @@ The project targets **WCAG 2.2 level AA**, as required by the course brief.
 - The current step is marked with `aria-current="step"`, and focus moves to the new step when the step changes.
 - Checked in the browser at 320 px, 375 px and 1280 px wide with no horizontal scrolling.
 
+### In the Tracking feature
+
+- Every form control has a visible `<label>`; hints and errors are linked with `aria-describedby`, invalid fields get `aria-invalid`, and on submit focus moves to the first invalid field with an error summary announced as an alert.
+- The live emissions estimate, history result count and "saved/deleted" confirmations are announced through `role="status"` live regions.
+- Delete confirmation uses the native `<dialog>` element: focus starts on Cancel, <kbd>Esc</kbd> cancels, and focus returns to the Delete button.
+- When the user moves between tracking screens, focus moves to the new screen's heading.
+- Categories are shown with an icon and text, never colour alone; bars use `role="progressbar"` with a text value; the breakdown table has a caption and column/row headers.
+- Checked in the browser at 320 px, 768 px and 1024 px wide with no horizontal scrolling.
+
 ### Not done yet
 
 - The course's ten-minute accessibility check (Section 7.3 of the brief) has not been performed.
 - No automated accessibility scan or screen reader walkthrough has been recorded.
 - Contrast ratios have not been formally measured with a checking tool.
 - 200% zoom has not been tested.
-- The forms, error messages and live regions in the Goals feature have not been tested with a screen reader.
+- The forms, error messages and live regions in the Goals and Tracking features have not been tested with a screen reader.
 
 Results will be recorded here and in the Deliverable 2 document as testing is carried out.
 
@@ -441,8 +499,8 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 | Project setup (React, TypeScript, Vite, ESLint) | ✅ Done |
 | Shared frontend foundation: layout, navigation, home dashboard, reusable components, design tokens | ✅ Done (merged into `main` through Pull Request #1) |
 | Compare Everyday Choices | 📋 Planned — placeholder page only |
-| Carbon Reduction Goals & Recommendations | 🚧 In progress — all ten screens are interactive on branch `feature/carbon-reduction-goals` with sample data; no saving yet |
-| Personal Carbon Tracking | 📋 Planned — not started in code |
+| Carbon Reduction Goals & Recommendations | 🚧 In progress — all ten screens are interactive (merged into `main` through Pull Request #2) with sample data; no saving yet |
+| Personal Carbon Tracking | 🚧 In progress — all ten screens work, with full create/read/update/delete; activities are stored temporarily in the browser and emissions use illustrative factors |
 | Database | 📋 Planned |
 | External REST API | 📋 Planned |
 | Internationalization (en, hr, third locale) | 📋 Planned |
@@ -454,9 +512,12 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 ## Known Limitations
 
 - Compare journeys, Saved comparisons and Settings show "not available yet" pages.
-- There is no navigation entry or page for Personal Carbon Tracking.
+- Carbon tracking stores activities in the browser's `localStorage`, not in a database: data stays on one device and is lost if site data is cleared.
+- Carbon tracking emission estimates use illustrative factors, not a verified dataset or API.
+- The screen within Carbon tracking (for example an activity's details) is not part of the URL, so reloading returns to the dashboard and the browser Back button leaves the feature.
+- Carbon goals does not yet use the emissions recorded in Carbon tracking.
 - Carbon goals works with temporary sample data only: the current emissions, this month's usage and the recommendation savings are placeholders, not measurements or calculations.
-- No data is stored, and nothing persists between sessions. A carbon plan resets when the page is reloaded.
+- A carbon plan in Carbon goals is not stored and resets when the page is reloaded.
 - The step within Carbon goals is not part of the URL, so reloading returns to step 1.
 - No external API is connected; the app shows no real emissions, cost or travel-time data.
 - The interface is English only, and user-visible strings are not externalised.

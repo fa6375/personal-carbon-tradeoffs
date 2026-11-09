@@ -7,12 +7,14 @@ import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { SavedPage } from './pages/SavedPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { TrackingPage } from './pages/TrackingPage'
 
 const PAGE_TITLES: Record<ResolvedRoute, string> = {
   home: 'Home',
   compare: 'Compare journeys',
   saved: 'Saved comparisons',
   goals: 'Carbon goals',
+  tracking: 'Carbon tracking',
   settings: 'Settings',
   'not-found': 'Page not found',
 }
@@ -27,6 +29,8 @@ function renderPage(route: ResolvedRoute) {
       return <SavedPage />
     case 'goals':
       return <GoalsPage />
+    case 'tracking':
+      return <TrackingPage />
     case 'settings':
       return <SettingsPage />
     default:

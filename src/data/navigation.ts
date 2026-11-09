@@ -5,6 +5,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'compare', label: 'Compare journeys', href: '#/compare', icon: 'compare' },
   { id: 'saved', label: 'Saved comparisons', href: '#/saved', icon: 'bookmark' },
   { id: 'goals', label: 'Carbon goals', href: '#/goals', icon: 'target' },
+  { id: 'tracking', label: 'Carbon tracking', href: '#/tracking', icon: 'activity' },
   { id: 'settings', label: 'Settings', href: '#/settings', icon: 'settings' },
 ]
 
@@ -14,5 +15,6 @@ export const ROUTE_BY_PATH: Record<string, RouteId> = {
   compare: 'compare',
   saved: 'saved',
   goals: 'goals',
+  tracking: 'tracking',
   settings: 'settings',
 }

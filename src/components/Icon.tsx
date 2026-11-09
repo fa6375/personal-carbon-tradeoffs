@@ -92,6 +92,76 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  activity: <path d="M3 12h4l3-8 4 16 3-8h4" />,
+  plus: (
+    <>
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4.2-4.2" />
+    </>
+  ),
+  pencil: (
+    <>
+      <path d="M4 20h4L19 9a2.1 2.1 0 0 0-4-4L4 16v4Z" />
+      <path d="m13.5 6.5 4 4" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="M6 7l1 13h10l1-13" />
+      <path d="M10 11v5" />
+      <path d="M14 11v5" />
+    </>
+  ),
+  car: (
+    <>
+      <path d="M5 16V11l2-5h10l2 5v5" />
+      <path d="M3 16h18v2H3z" />
+      <path d="M5 11h14" />
+      <circle cx="8" cy="18.5" r="1.5" />
+      <circle cx="16" cy="18.5" r="1.5" />
+    </>
+  ),
+  utensils: (
+    <>
+      <path d="M7 3v8a2 2 0 0 0 2 2v8" />
+      <path d="M11 3v8a2 2 0 0 1-2 2" />
+      <path d="M17 21V3c-2 1-3 4-3 7s1 4 3 4" />
+    </>
+  ),
+  bolt: <path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z" />,
+  chart: (
+    <>
+      <path d="M4 20V4" />
+      <path d="M4 20h16" />
+      <path d="M8 16v-5" />
+      <path d="M12 16V8" />
+      <path d="M16 16v-3" />
+    </>
+  ),
+  list: (
+    <>
+      <path d="M9 6h11" />
+      <path d="M9 12h11" />
+      <path d="M9 18h11" />
+      <path d="M4.5 6h.01" />
+      <path d="M4.5 12h.01" />
+      <path d="M4.5 18h.01" />
+    </>
+  ),
+  'arrow-left': (
+    <>
+      <path d="M19 12H5" />
+      <path d="m11 6-6 6 6 6" />
+    </>
+  ),
 }
 
 /** Decorative line icon. Always hidden from assistive tech; label the parent instead. */
