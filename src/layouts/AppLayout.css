@@ -1,0 +1,38 @@
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-layout__column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-layout__main {
+  flex: 1;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+}
+
+.app-layout__main:focus {
+  outline: none;
+}
+
+.app-layout__content {
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .app-layout__main {
+    padding: var(--space-10) var(--space-8) var(--space-10);
+  }
+}
+
+@media (min-width: 1200px) {
+  .app-layout__main {
+    padding: var(--space-12) var(--space-12) var(--space-10);
+  }
+}
