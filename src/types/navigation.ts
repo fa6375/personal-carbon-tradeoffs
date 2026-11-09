@@ -1,7 +1,7 @@
 import type { IconName } from './icons'
 
 /** Every top-level page the app shell knows about. */
-export type RouteId = 'home' | 'compare' | 'saved' | 'settings'
+export type RouteId = 'home' | 'compare' | 'saved' | 'goals' | 'settings'
 
 export interface NavItem {
   id: RouteId

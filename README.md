@@ -2,7 +2,7 @@
 
 Carbon Choices is a mobile-first web application that helps people understand and manage the environmental impact of their everyday decisions. It brings three feature areas together in one product: comparing everyday choices, setting carbon reduction goals and tracking personal carbon emissions. It implements the **Personal Carbon Trade-Offs** topic for **ISTE.260 – Designing the User Experience**, Deliverable 2.
 
-> **Status:** early development. The shared frontend shell is in place; the three feature areas, the database, the external API integration and localisation are not implemented yet. See [Current Development Status](#current-development-status).
+> **Status:** early development. The shared frontend shell is in place, and a first interactive version of Carbon Reduction Goals & Recommendations uses temporary sample data. Compare Everyday Choices and Personal Carbon Tracking, the database, the external API integration and localisation are not implemented yet. See [Current Development Status](#current-development-status).
 
 ---
 
@@ -70,13 +70,35 @@ Compare transportation alternatives for the same journey based on:
 
 ### 2. Carbon Reduction Goals & Recommendations — *Martin Mudrinic*
 
+Helps users turn "I want to lower my emissions" into a plan they can follow. The user sets a monthly carbon budget with a reduction goal and timeframe, shares that budget across categories (transport, food, home energy, goods & shopping), ranks the trade-offs that matter to them (emissions, cost, time, comfort) and gets reduction ideas ordered by those priorities. During the month they can see their progress against the budget, move budget between categories when needed and review a summary of the whole plan.
+
+The feature is at `#/goals` ("Carbon goals" in the navigation). It groups the ten screens from Martin's Deliverable 1 sketches into five steps:
+
+| Step | Deliverable 1 screens |
+|---|---|
+| 1. Set up | Carbon budget setup · Personal carbon budget |
+| 2. Allocate | Budget allocation by category · Trade-off priorities |
+| 3. Plan | Monthly carbon plan · Reduction opportunities |
+| 4. Track | Goal progress · Budget adjustment · Budget adjustment details |
+| 5. Summary | Carbon budget summary |
+
 | Functionality | Status |
 |---|---|
-| Setting carbon reduction goals | 📋 |
-| Managing a carbon budget | 📋 |
-| Allocating the budget across categories | 📋 |
-| Monitoring progress towards goals | 📋 |
-| Recommendations for reducing emissions | 📋 |
+| Setting a reduction goal (10–30%), timeframe (3, 6 or 12 months) and start month | ✅ Interactive, sample baseline |
+| Personal monthly carbon budget derived from the goal | ✅ Interactive, sample baseline |
+| Allocating the budget across four categories, with a check that it adds up to 100% | ✅ |
+| Ranking trade-off priorities (emissions, cost, time, comfort) | ✅ |
+| Monthly plan that steps the budget down evenly over the timeframe | ✅ |
+| Reduction opportunities ordered by the user's priorities, with category filter and "Add to plan" | ✅ Sample recommendations |
+| Goal progress for the current month, overall and per category | ✅ Sample usage data |
+| Budget adjustment between categories, with validation and an optional reason | ✅ |
+| Budget adjustment details (before/after allocation for each adjustment) | ✅ |
+| Carbon budget summary | ✅ |
+| Saving plans and adjustments (create, read, update, delete in the database) | 📋 Planned — the plan is kept in memory and is lost on reload |
+| Real baseline and progress from Personal Carbon Tracking | 📋 Planned |
+| Emission savings for recommendations from an external API | 📋 Planned |
+
+> **Sample data:** every emission figure in this feature (current monthly emissions, emissions used so far this month, and the saving for each recommendation) is a placeholder defined in `src/features/goals/sampleData.ts` and labelled "Sample data" in the interface. The feature only does budget arithmetic on these numbers (percentages, sums, monthly targets); it does not calculate emissions.
 
 ### 3. Personal Carbon Tracking — *Lazar Jovovic*
 
@@ -94,10 +116,11 @@ Compare transportation alternatives for the same journey based on:
 | Home dashboard with introduction, three information cards and "How it works" | ✅ |
 | Placeholder pages for Compare journeys, Saved comparisons and Settings, and a "Page not found" page | ✅ |
 | Reusable UI components and design tokens | ✅ |
-| Navigation entries for Goals and Tracking | 📋 Not added yet |
+| Navigation entry for Goals (`#/goals`) | ✅ |
+| Navigation entry for Tracking | 📋 Not added yet |
 | Settings (including language selection) | 📋 (placeholder page at `#/settings`) |
 
-> Navigation currently contains Home, Compare journeys, Saved comparisons and Settings. Entries for the Goals and Tracking feature areas will be added when those areas are implemented.
+> Navigation currently contains Home, Compare journeys, Saved comparisons, Carbon goals and Settings. The entry for Personal Carbon Tracking will be added when that area is implemented.
 
 ---
 
@@ -129,7 +152,7 @@ Versions are taken from `package.json` and the installed `node_modules`.
 
 Notes:
 
-- There is **no router library**. Navigation uses a small hash-based router in `src/hooks/useHashRoute.ts` (routes: `#/`, `#/compare`, `#/saved`, `#/settings`).
+- There is **no router library**. Navigation uses a small hash-based router in `src/hooks/useHashRoute.ts` (routes: `#/`, `#/compare`, `#/saved`, `#/goals`, `#/settings`).
 - There is **no backend, database, i18n library or test framework** installed yet.
 
 ### Prerequisites
@@ -150,6 +173,7 @@ personal-carbon-tradeoffs/
 │   └── favicon.svg            # App icon
 ├── src/
 │   ├── components/            # Reusable UI components, each with its own CSS file
+│   │   ├── Button.tsx         #   <button> with the shared button styles (Button.css)
 │   │   ├── ButtonLink.tsx     #   Link styled as a button (styles in Button.css)
 │   │   ├── EmptyState.tsx     #   Placeholder / empty-state panel
 │   │   ├── Footer.tsx
@@ -164,6 +188,16 @@ personal-carbon-tradeoffs/
 │   ├── data/                  # Static content and configuration
 │   │   ├── homeContent.ts     #   Text for the home dashboard
 │   │   └── navigation.ts      #   Navigation items and route mapping
+│   ├── features/              # Feature-specific code, one folder per feature area
+│   │   └── goals/             #   Carbon Reduction Goals & Recommendations (Martin)
+│   │       ├── components/    #     One component per screen, plus GoalsUi.tsx building blocks
+│   │       ├── budget.ts      #     Budget arithmetic (shares, monthly targets, ranking)
+│   │       ├── format.ts      #     kg CO₂e and month formatting
+│   │       ├── goalPlanReducer.ts # In-memory plan state (useReducer)
+│   │       ├── sampleData.ts  #     TEMPORARY sample data, clearly marked
+│   │       ├── stages.ts      #     The five steps and the screens they contain
+│   │       ├── types.ts       #     TypeScript types for the feature
+│   │       └── goals.css      #     Styles for the feature
 │   ├── hooks/
 │   │   └── useHashRoute.ts    # Minimal hash-based routing
 │   ├── layouts/
@@ -172,6 +206,7 @@ personal-carbon-tradeoffs/
 │   │   ├── HomePage.tsx
 │   │   ├── ComparePage.tsx    #   Placeholder
 │   │   ├── SavedPage.tsx      #   Placeholder
+│   │   ├── GoalsPage.tsx      #   Carbon goals: step navigation and the Goals screens
 │   │   ├── SettingsPage.tsx   #   Placeholder
 │   │   ├── NotFoundPage.tsx
 │   │   └── PlaceholderPage.tsx #   Shared template for unbuilt sections
@@ -196,6 +231,7 @@ personal-carbon-tradeoffs/
 - Colours, spacing and typography are defined once in `src/styles/tokens.css`; components use these variables instead of hard-coded values.
 - Each component keeps its CSS file next to it, so team members can work on different features without editing the same files.
 - New screens go in `src/pages/` and are registered in `src/data/navigation.ts` and `src/App.tsx`.
+- Code that belongs to only one feature area goes in `src/features/<feature>/`, so each team member mostly edits their own folder. Changes to shared files (navigation, routing, `App.tsx`, shared components) should stay small and be mentioned in the Pull Request.
 
 ---
 
@@ -272,7 +308,7 @@ API keys, passwords, tokens and other secrets must **never** be committed to the
 
 Persistent storage in the application's own database is a requirement of Deliverable 2: data created by the user must survive a restart, and the main entities must support create, read, update and delete from the interface.
 
-**Current state:** no database has been chosen or implemented. The application stores no data.
+**Current state:** no database has been chosen or implemented. The application stores no data. The carbon plan in the Goals feature is held in memory only and resets when the page is reloaded.
 
 When the database is implemented, this section will document:
 
@@ -287,7 +323,7 @@ When the database is implemented, this section will document:
 
 Deliverable 2 requires integration with at least one external REST API whose data is genuinely related to the topic and does real work in the product (for example, providing emission factors, exchange rates or location data), not only decorative content. The integration must handle failure states such as network errors, timeouts, rate limits and empty results, and API keys must be kept out of client-side code.
 
-**Current state:** no external API has been selected or connected. All content currently shown in the application is static placeholder text, and no emissions, cost or travel-time values are calculated.
+**Current state:** no external API has been selected or connected. No emissions, cost or travel-time values are calculated. The Goals feature shows temporary sample emission figures from `src/features/goals/sampleData.ts`; everything else is static placeholder text.
 
 When an API is integrated, this section will document which service is used, what it is used for, and how to obtain a key if one is required.
 
@@ -305,7 +341,7 @@ The application must support at least three locales:
 
 The brief also requires that every user-visible string is externalised, that plurals, dates, numbers and currencies use locale-aware formatting, that the HTML `lang` attribute follows the selected locale, and that the chosen locale persists across reloads.
 
-**Current state: localization is not implemented.** The interface is English only, strings are currently written directly in components and in `src/data/homeContent.ts`, no i18n library is installed, and there is no language switcher. `index.html` sets `lang="en"`.
+**Current state: localization is not implemented.** The interface is English only, strings are currently written directly in components, in `src/data/homeContent.ts` and in `src/features/goals/` (numbers and dates there already go through `Intl` formatters in `format.ts`, fixed to English), no i18n library is installed, and there is no language switcher. `index.html` sets `lang="en"`.
 
 How to add a new locale will be documented here once the i18n setup is in place.
 
@@ -329,13 +365,22 @@ The project targets **WCAG 2.2 level AA**, as required by the course brief.
 - `prefers-reduced-motion` is respected.
 - Text colours were chosen to meet the 4.5:1 contrast ratio.
 
+### In the Goals feature
+
+- Form controls have visible labels; radio groups use `fieldset` and `legend`.
+- The budget adjustment form shows errors next to the field, links them with `aria-describedby`, sets `aria-invalid` and moves focus to the first invalid field.
+- Results that change while the user works (allocation total, adjustment confirmation, priority reordering) are announced through `role="status"` live regions.
+- Progress bars use `role="progressbar"` with a text value; status badges use a symbol and text, not colour alone.
+- The current step is marked with `aria-current="step"`, and focus moves to the new step when the step changes.
+- Checked in the browser at 320 px, 375 px and 1280 px wide with no horizontal scrolling.
+
 ### Not done yet
 
 - The course's ten-minute accessibility check (Section 7.3 of the brief) has not been performed.
 - No automated accessibility scan or screen reader walkthrough has been recorded.
 - Contrast ratios have not been formally measured with a checking tool.
 - 200% zoom has not been tested.
-- Forms, error messages and live regions do not exist yet, so they have not been tested.
+- The forms, error messages and live regions in the Goals feature have not been tested with a screen reader.
 
 Results will be recorded here and in the Deliverable 2 document as testing is carried out.
 
@@ -394,9 +439,9 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 | Area | Status |
 |---|---|
 | Project setup (React, TypeScript, Vite, ESLint) | ✅ Done |
-| Shared frontend foundation: layout, navigation, home dashboard, reusable components, design tokens | ✅ Done (on branch `feature/frontend-setup`, not yet merged into `main`) |
+| Shared frontend foundation: layout, navigation, home dashboard, reusable components, design tokens | ✅ Done (merged into `main` through Pull Request #1) |
 | Compare Everyday Choices | 📋 Planned — placeholder page only |
-| Carbon Reduction Goals & Recommendations | 📋 Planned — not started in code |
+| Carbon Reduction Goals & Recommendations | 🚧 In progress — all ten screens are interactive on branch `feature/carbon-reduction-goals` with sample data; no saving yet |
 | Personal Carbon Tracking | 📋 Planned — not started in code |
 | Database | 📋 Planned |
 | External REST API | 📋 Planned |
@@ -408,9 +453,11 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 
 ## Known Limitations
 
-- None of the three feature areas is functional yet; Compare journeys, Saved comparisons and Settings show "not available yet" pages.
-- There are no navigation entries or pages for Carbon Reduction Goals or Personal Carbon Tracking.
-- No data is stored, and nothing persists between sessions.
+- Compare journeys, Saved comparisons and Settings show "not available yet" pages.
+- There is no navigation entry or page for Personal Carbon Tracking.
+- Carbon goals works with temporary sample data only: the current emissions, this month's usage and the recommendation savings are placeholders, not measurements or calculations.
+- No data is stored, and nothing persists between sessions. A carbon plan resets when the page is reloaded.
+- The step within Carbon goals is not part of the URL, so reloading returns to step 1.
 - No external API is connected; the app shows no real emissions, cost or travel-time data.
 - The interface is English only, and user-visible strings are not externalised.
 - Routing is hash-based (`#/compare`), so URLs contain a `#`.

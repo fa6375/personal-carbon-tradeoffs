@@ -84,6 +84,14 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 8h.01" />
     </>
   ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1.5" />
+    </>
+  ),
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
 }
 
 /** Decorative line icon. Always hidden from assistive tech; label the parent instead. */
