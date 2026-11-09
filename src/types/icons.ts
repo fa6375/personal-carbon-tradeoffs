@@ -11,3 +11,5 @@ export type IconName =
   | 'clock'
   | 'arrow-right'
   | 'info'
+  | 'target'
+  | 'check'

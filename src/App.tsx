@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useHashRoute, type ResolvedRoute } from './hooks/useHashRoute'
 import { AppLayout } from './layouts/AppLayout'
 import { ComparePage } from './pages/ComparePage'
+import { GoalsPage } from './pages/GoalsPage'
 import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { SavedPage } from './pages/SavedPage'
@@ -11,6 +12,7 @@ const PAGE_TITLES: Record<ResolvedRoute, string> = {
   home: 'Home',
   compare: 'Compare journeys',
   saved: 'Saved comparisons',
+  goals: 'Carbon goals',
   settings: 'Settings',
   'not-found': 'Page not found',
 }
@@ -23,6 +25,8 @@ function renderPage(route: ResolvedRoute) {
       return <ComparePage />
     case 'saved':
       return <SavedPage />
+    case 'goals':
+      return <GoalsPage />
     case 'settings':
       return <SettingsPage />
     default:
