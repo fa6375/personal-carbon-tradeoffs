@@ -18,7 +18,7 @@ export function Sidebar({ activeRoute }: SidebarProps) {
         <NavList activeRoute={activeRoute} />
       </nav>
       <p className="sidebar__note">
-        Early preview. Comparison features are still in development.
+        Early preview. All figures are illustrative estimates.
       </p>
     </aside>
   )

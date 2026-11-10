@@ -33,9 +33,9 @@ export function HomePage() {
             Early preview
           </div>
           <p>
-            This is the first version of the Carbon Choices interface. Journey
-            comparisons, saved results and settings are being designed and are
-            not available yet.
+            Journey comparison, carbon goals and carbon tracking can be tried
+            now. Figures are illustrative estimates, data is kept in this
+            browser only, and settings are not available yet.
           </p>
         </aside>
       </section>
@@ -61,7 +61,7 @@ export function HomePage() {
         <SectionHeading
           id="how-title"
           title="How it works"
-          description="The planned flow for comparing a journey."
+          description="How comparing a journey works."
         />
         <ol className="home-steps">
           {STEPS.map((step, index) => (
@@ -79,8 +79,9 @@ export function HomePage() {
         <p className="home-note">
           <Icon name="info" size={16} />
           <span>
-            Results shown in Carbon Choices will be estimates. Data sources and
-            calculation methods will be documented once they are in place.
+            Results shown in Carbon Choices are estimates based on illustrative
+            average values. Each comparison shows how its figures were
+            calculated.
           </span>
         </p>
       </section>

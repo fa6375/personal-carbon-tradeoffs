@@ -24,3 +24,8 @@ export type IconName =
   | 'chart'
   | 'list'
   | 'arrow-left'
+  | 'walk'
+  | 'bicycle'
+  | 'bus'
+  | 'train'
+  | 'star'

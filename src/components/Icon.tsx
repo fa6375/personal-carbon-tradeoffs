@@ -162,6 +162,48 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="m11 6-6 6 6 6" />
     </>
   ),
+  walk: (
+    <>
+      <circle cx="13" cy="4" r="1.75" />
+      <path d="m9 21 2.5-6.5" />
+      <path d="m16 21-2.5-5.5L11 12l1-4 4 3 3 1" />
+      <path d="m12 8-3.5 2L7 13" />
+    </>
+  ),
+  bicycle: (
+    <>
+      <circle cx="6" cy="16" r="3.5" />
+      <circle cx="18" cy="16" r="3.5" />
+      <path d="m6 16 4-7h6l2 7" />
+      <path d="M12 16 9 6H7" />
+      <path d="M14 6h2.5" />
+    </>
+  ),
+  bus: (
+    <>
+      <rect x="5" y="3" width="14" height="15" rx="2" />
+      <path d="M5 11h14" />
+      <path d="M9 3v8" />
+      <path d="M15 3v8" />
+      <path d="M7 18v2.5" />
+      <path d="M17 18v2.5" />
+      <circle cx="8.5" cy="14.5" r="0.75" />
+      <circle cx="15.5" cy="14.5" r="0.75" />
+    </>
+  ),
+  train: (
+    <>
+      <rect x="6" y="3" width="12" height="14" rx="3" />
+      <path d="M6 10h12" />
+      <circle cx="9.5" cy="13.5" r="0.75" />
+      <circle cx="14.5" cy="13.5" r="0.75" />
+      <path d="m8.5 17-2.5 4" />
+      <path d="m15.5 17 2.5 4" />
+    </>
+  ),
+  star: (
+    <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z" />
+  ),
 }
 
 /** Decorative line icon. Always hidden from assistive tech; label the parent instead. */
