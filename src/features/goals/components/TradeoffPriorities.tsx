@@ -1,6 +1,7 @@
 import { useState, type Dispatch } from 'react'
+import { getCategoryGaps, rankOpportunities } from '../budget'
 import type { GoalPlanAction } from '../goalPlanReducer'
-import { getPriority } from '../sampleData'
+import { getPriority, OPPORTUNITIES } from '../sampleData'
 import type { GoalPlan, PriorityId } from '../types'
 import { Panel } from './GoalsUi'
 
@@ -12,19 +13,22 @@ interface TradeoffPrioritiesProps {
 /** Screen 4 – Trade-off priorities. */
 export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) {
   const [announcement, setAnnouncement] = useState('')
+  const topIdea = rankOpportunities(OPPORTUNITIES, plan.priorities, getCategoryGaps(plan))[0]
 
   function move(id: PriorityId, direction: 'up' | 'down') {
     const index = plan.priorities.indexOf(id)
     const newPosition = direction === 'up' ? index : index + 2
     dispatch({ type: 'movePriority', id, direction })
-    setAnnouncement(`${getPriority(id).label} moved to position ${newPosition} of ${plan.priorities.length}.`)
+    setAnnouncement(
+      `${getPriority(id).label} moved to position ${newPosition} of ${plan.priorities.length}.`,
+    )
   }
 
   return (
     <Panel
       id="goals-priorities-title"
       title="Trade-off priorities"
-      description="Put what matters most to you at the top. Recommendations are ordered to match."
+      description="Every change has trade-offs. Put what matters most to you at the top; recommendations in the next step are ordered to match."
     >
       <ol className="goals-priorities">
         {plan.priorities.map((id, index) => {
@@ -37,7 +41,10 @@ export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) 
                 {index + 1}
               </span>
               <div className="goals-priorities__text">
-                <span className="goals-priorities__label">{priority.label}</span>
+                <span className="goals-priorities__label">
+                  {priority.label}
+                  {isFirst && <span className="goals-priorities__top">Most important</span>}
+                </span>
                 <span className="goals-hint">{priority.description}</span>
               </div>
               <div className="goals-priorities__controls">
@@ -64,6 +71,10 @@ export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) 
           )
         })}
       </ol>
+
+      <p className="goals-callout" aria-live="polite">
+        With these priorities, the first recommendation is <strong>{topIdea.title}</strong>.
+      </p>
       <p className="visually-hidden" role="status">
         {announcement}
       </p>
