@@ -1,36 +1,52 @@
-import { getBudgetKg, SAMPLE_BASELINE_TOTAL } from '../budget'
-import { formatKg, formatMonth } from '../format'
-import { CATEGORIES, SAMPLE_BASELINE } from '../sampleData'
-import type { GoalPlan } from '../types'
-import { Panel, ProgressBar, SampleDataNotice, StatTile } from './GoalsUi'
+import { getBaselineKg, getBudgetKg, getMonthlyTargets, roundKg } from '../budget'
+import { formatDateTime, formatKg, formatMonth } from '../format'
+import { CATEGORIES } from '../sampleData'
+import type { BaselineSource, GoalPlan } from '../types'
+import { Panel, ProgressBar, StatTile } from './GoalsUi'
+
+const SOURCE_LABEL: Record<BaselineSource, string> = {
+  sample: 'Sample value',
+  tracked: 'From Carbon tracking',
+  custom: 'Your estimate',
+}
 
 /** Screen 2 – Personal carbon budget. */
 export function PersonalBudget({ plan }: { plan: GoalPlan }) {
+  const baselineKg = getBaselineKg(plan)
   const budgetKg = getBudgetKg(plan)
-  const reductionKg = SAMPLE_BASELINE_TOTAL - budgetKg
+  const firstMonthKg = getMonthlyTargets(plan)[0].targetKg
 
   return (
     <Panel
       id="goals-budget-title"
       title="Your personal carbon budget"
-      description="The monthly amount of emissions you are aiming to stay within."
+      description="The monthly amount of emissions you are aiming to stay within by the end of your plan."
     >
       <dl className="goals-stats">
-        <StatTile label="Monthly budget" value={formatKg(budgetKg)} highlight />
+        <StatTile
+          label="Monthly budget"
+          value={formatKg(budgetKg)}
+          hint={`From ${formatMonth(plan.startMonth, plan.durationMonths - 1)}`}
+          highlight
+        />
         <StatTile
           label="Current monthly emissions"
-          value={formatKg(SAMPLE_BASELINE_TOTAL)}
-          hint="Sample value"
+          value={formatKg(baselineKg)}
+          hint={
+            plan.baseline.source === 'tracked' && plan.baseline.takenAt
+              ? `${SOURCE_LABEL.tracked}, ${formatDateTime(plan.baseline.takenAt)}`
+              : SOURCE_LABEL[plan.baseline.source]
+          }
         />
         <StatTile
           label="Reduction"
-          value={formatKg(reductionKg)}
-          hint={`${plan.reductionPercent}% less each month`}
+          value={formatKg(roundKg(baselineKg - budgetKg))}
+          hint={`${plan.reductionPercent}% less than now`}
         />
         <StatTile
-          label="Goal date"
-          value={formatMonth(plan.startMonth, plan.durationMonths - 1)}
-          hint={`${plan.durationMonths}-month plan`}
+          label="First month target"
+          value={formatKg(firstMonthKg)}
+          hint={`${formatMonth(plan.startMonth)}, step 1 of ${plan.durationMonths}`}
         />
       </dl>
 
@@ -39,20 +55,20 @@ export function PersonalBudget({ plan }: { plan: GoalPlan }) {
           <span>Now</span>
           <ProgressBar
             label="Current monthly emissions"
-            value={SAMPLE_BASELINE_TOTAL}
-            max={SAMPLE_BASELINE_TOTAL}
-            valueText={formatKg(SAMPLE_BASELINE_TOTAL)}
+            value={baselineKg}
+            max={baselineKg}
+            valueText={formatKg(baselineKg)}
             tone="muted"
           />
-          <span>{formatKg(SAMPLE_BASELINE_TOTAL)}</span>
+          <span>{formatKg(baselineKg)}</span>
         </div>
         <div className="goals-compare__row">
           <span>Goal</span>
           <ProgressBar
             label="Monthly budget"
             value={budgetKg}
-            max={SAMPLE_BASELINE_TOTAL}
-            valueText={formatKg(budgetKg)}
+            max={baselineKg}
+            valueText={`${formatKg(budgetKg)}, ${100 - plan.reductionPercent}% of now`}
           />
           <span>{formatKg(budgetKg)}</span>
         </div>
@@ -63,14 +79,10 @@ export function PersonalBudget({ plan }: { plan: GoalPlan }) {
         {CATEGORIES.map((category) => (
           <li key={category.id}>
             <span>{category.label}</span>
-            <span>{formatKg(SAMPLE_BASELINE[category.id])}</span>
+            <span>{formatKg(plan.baseline.amounts[category.id])}</span>
           </li>
         ))}
       </ul>
-
-      <SampleDataNotice>
-        The category amounts are placeholders, not measurements.
-      </SampleDataNotice>
     </Panel>
   )
 }

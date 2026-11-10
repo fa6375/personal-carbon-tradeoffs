@@ -1,15 +1,17 @@
 /*
- * In-memory state for the user's carbon plan.
+ * State changes for the user's carbon plan.
  *
- * The plan lives only in React state: it is lost on reload. Saving to the
- * project database is planned but not implemented.
+ * The reducer is pure: ids and timestamps are created by the caller. The plan
+ * is held in memory only (see goalPlanStore.ts); saving it to the project
+ * database is planned but not implemented.
  */
 import { allocationFromAmounts, getBudgetKg } from './budget'
 import { toYearMonth } from './format'
-import { DEFAULT_PRIORITIES, SAMPLE_BASELINE } from './sampleData'
-import type { CategoryId, GoalPlan, PriorityId } from './types'
+import { DEFAULT_PRIORITIES, REDUCTION_LIMITS, SAMPLE_BASELINE } from './sampleData'
+import type { Baseline, CategoryId, GoalPlan, PriorityId } from './types'
 
 export type GoalPlanAction =
+  | { type: 'setBaseline'; baseline: Baseline }
   | { type: 'setReduction'; percent: number }
   | { type: 'setDuration'; months: number }
   | { type: 'setStartMonth'; month: string }
@@ -18,7 +20,7 @@ export type GoalPlanAction =
   | { type: 'movePriority'; id: PriorityId; direction: 'up' | 'down' }
   | { type: 'toggleOpportunity'; id: string }
   | {
-      type: 'applyAdjustment'
+      type: 'reallocate'
       id: string
       createdAt: string
       from: CategoryId
@@ -26,10 +28,12 @@ export type GoalPlanAction =
       percentPoints: number
       reason: string
     }
+  | { type: 'changeGoal'; id: string; createdAt: string; reductionPercent: number; reason: string }
   | { type: 'resetPlan' }
 
 export function createInitialPlan(): GoalPlan {
   return {
+    baseline: { source: 'sample', amounts: { ...SAMPLE_BASELINE } },
     reductionPercent: 20,
     durationMonths: 6,
     startMonth: toYearMonth(new Date()),
@@ -45,10 +49,17 @@ function clampPercent(value: number): number {
   return Math.min(100, Math.max(0, Math.round(value)))
 }
 
+export function isValidReduction(value: number): boolean {
+  return Number.isInteger(value) && value >= REDUCTION_LIMITS.min && value <= REDUCTION_LIMITS.max
+}
+
 export function goalPlanReducer(plan: GoalPlan, action: GoalPlanAction): GoalPlan {
   switch (action.type) {
+    case 'setBaseline':
+      return { ...plan, baseline: action.baseline }
+
     case 'setReduction':
-      return { ...plan, reductionPercent: action.percent }
+      return isValidReduction(action.percent) ? { ...plan, reductionPercent: action.percent } : plan
 
     case 'setDuration':
       return { ...plan, durationMonths: action.months }
@@ -63,7 +74,7 @@ export function goalPlanReducer(plan: GoalPlan, action: GoalPlanAction): GoalPla
       }
 
     case 'resetAllocation':
-      return { ...plan, allocation: allocationFromAmounts(SAMPLE_BASELINE) }
+      return { ...plan, allocation: allocationFromAmounts(plan.baseline.amounts) }
 
     case 'movePriority': {
       const index = plan.priorities.indexOf(action.id)
@@ -84,9 +95,14 @@ export function goalPlanReducer(plan: GoalPlan, action: GoalPlanAction): GoalPla
       }
     }
 
-    case 'applyAdjustment': {
+    case 'reallocate': {
       const { from, to, percentPoints } = action
-      if (from === to || percentPoints <= 0 || percentPoints > plan.allocation[from]) {
+      if (
+        from === to ||
+        !Number.isInteger(percentPoints) ||
+        percentPoints <= 0 ||
+        percentPoints > plan.allocation[from]
+      ) {
         return plan
       }
       const allocationAfter = {
@@ -94,20 +110,49 @@ export function goalPlanReducer(plan: GoalPlan, action: GoalPlanAction): GoalPla
         [from]: plan.allocation[from] - percentPoints,
         [to]: plan.allocation[to] + percentPoints,
       }
+      const budget = getBudgetKg(plan)
       return {
         ...plan,
         allocation: allocationAfter,
         adjustments: [
           {
+            kind: 'reallocate',
             id: action.id,
             createdAt: action.createdAt,
+            reason: action.reason,
             from,
             to,
             percentPoints,
-            reason: action.reason,
-            budgetKg: getBudgetKg(plan),
+            reductionBefore: plan.reductionPercent,
+            reductionAfter: plan.reductionPercent,
+            budgetBefore: budget,
+            budgetAfter: budget,
             allocationBefore: plan.allocation,
             allocationAfter,
+          },
+          ...plan.adjustments,
+        ],
+      }
+    }
+
+    case 'changeGoal': {
+      if (!isValidReduction(action.reductionPercent)) return plan
+      if (action.reductionPercent === plan.reductionPercent) return plan
+      const next = { ...plan, reductionPercent: action.reductionPercent }
+      return {
+        ...next,
+        adjustments: [
+          {
+            kind: 'goal',
+            id: action.id,
+            createdAt: action.createdAt,
+            reason: action.reason,
+            reductionBefore: plan.reductionPercent,
+            reductionAfter: action.reductionPercent,
+            budgetBefore: getBudgetKg(plan),
+            budgetAfter: getBudgetKg(next),
+            allocationBefore: plan.allocation,
+            allocationAfter: plan.allocation,
           },
           ...plan.adjustments,
         ],

@@ -1,4 +1,4 @@
-import { useReducer, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '../components/Button'
 import { PageHeader } from '../components/PageHeader'
 import { SectionHeading } from '../components/SectionHeading'
@@ -8,36 +8,47 @@ import { BudgetAllocation } from '../features/goals/components/BudgetAllocation'
 import { BudgetSetup } from '../features/goals/components/BudgetSetup'
 import { BudgetSummary } from '../features/goals/components/BudgetSummary'
 import { GoalProgress } from '../features/goals/components/GoalProgress'
+import { AllocationWarning } from '../features/goals/components/GoalsUi'
 import { GoalsStepper } from '../features/goals/components/GoalsStepper'
 import { MonthlyPlan } from '../features/goals/components/MonthlyPlan'
 import { PersonalBudget } from '../features/goals/components/PersonalBudget'
 import { ReductionOpportunities } from '../features/goals/components/ReductionOpportunities'
 import { TradeoffPriorities } from '../features/goals/components/TradeoffPriorities'
-import { createInitialPlan, goalPlanReducer } from '../features/goals/goalPlanReducer'
+import { toYearMonth } from '../features/goals/format'
+import { dispatchGoalPlan, setGoalsStage, useGoalsSession } from '../features/goals/goalPlanStore'
 import { GOALS_STAGES } from '../features/goals/stages'
+import { summariseTracked } from '../features/goals/trackedEmissions'
 import type { GoalsStageId } from '../features/goals/types'
+import { useActivities } from '../features/tracking/useActivities'
 import '../features/goals/goals.css'
 
-/** Carbon Reduction Goals & Recommendations (Martin Mudrinic). */
+/** Carbon Reduction Goals & Recommendations (Martin Mudrinić). */
 export function GoalsPage() {
-  const [plan, dispatch] = useReducer(goalPlanReducer, undefined, createInitialPlan)
-  const [stageId, setStageId] = useState<GoalsStageId>('setup')
+  const { plan, stageId } = useGoalsSession()
   const [selectedAdjustmentId, setSelectedAdjustmentId] = useState<string | null>(null)
+  const [currentMonth] = useState(() => toYearMonth(new Date()))
   const stageRef = useRef<HTMLElement>(null)
+
+  // Read-only use of the activities recorded in Personal Carbon Tracking.
+  const { status, activities, error, reload } = useActivities()
+  const tracked = summariseTracked(status, activities, error, reload)
 
   const stageIndex = GOALS_STAGES.findIndex((stage) => stage.id === stageId)
   const stage = GOALS_STAGES[stageIndex]
   const previous = GOALS_STAGES[stageIndex - 1]
   const next = GOALS_STAGES[stageIndex + 1]
+  const dispatch = dispatchGoalPlan
 
   function goTo(id: GoalsStageId) {
-    setStageId(id)
+    setGoalsStage(id)
     // Move focus to the new step so keyboard and screen reader users start there.
     requestAnimationFrame(() => {
       stageRef.current?.focus()
       stageRef.current?.scrollIntoView({ block: 'start' })
     })
   }
+
+  const showAllocationWarning = stageId === 'plan' || stageId === 'track' || stageId === 'summary'
 
   return (
     <div className="goals-page">
@@ -57,14 +68,18 @@ export function GoalsPage() {
       >
         <SectionHeading
           id="goals-stage-title"
-          title={`Step ${stageIndex + 1}: ${stage.title}`}
+          title={`Step ${stageIndex + 1} of ${GOALS_STAGES.length}: ${stage.title}`}
           description={stage.description}
         />
+
+        {showAllocationWarning && (
+          <AllocationWarning allocation={plan.allocation} onFix={() => goTo('allocate')} />
+        )}
 
         <div className="goals-stage__panels">
           {stageId === 'setup' && (
             <>
-              <BudgetSetup plan={plan} dispatch={dispatch} />
+              <BudgetSetup plan={plan} dispatch={dispatch} tracked={tracked} />
               <PersonalBudget plan={plan} />
             </>
           )}
@@ -76,13 +91,13 @@ export function GoalsPage() {
           )}
           {stageId === 'plan' && (
             <>
-              <MonthlyPlan plan={plan} />
+              <MonthlyPlan plan={plan} currentMonth={currentMonth} />
               <ReductionOpportunities plan={plan} dispatch={dispatch} />
             </>
           )}
           {stageId === 'track' && (
             <>
-              <GoalProgress plan={plan} />
+              <GoalProgress plan={plan} tracked={tracked} currentMonth={currentMonth} />
               <BudgetAdjustmentForm
                 plan={plan}
                 dispatch={dispatch}
@@ -96,7 +111,12 @@ export function GoalsPage() {
             </>
           )}
           {stageId === 'summary' && (
-            <BudgetSummary plan={plan} dispatch={dispatch} onEdit={goTo} />
+            <BudgetSummary
+              plan={plan}
+              dispatch={dispatch}
+              onEdit={goTo}
+              currentMonth={currentMonth}
+            />
           )}
         </div>
 
