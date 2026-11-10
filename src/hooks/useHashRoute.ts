@@ -5,7 +5,8 @@ import type { RouteId } from '../types/navigation'
 export type ResolvedRoute = RouteId | 'not-found'
 
 function resolveHash(hash: string): ResolvedRoute {
-  const path = hash.replace(/^#\/?/, '').replace(/\/$/, '')
+  // Ignore any query part, e.g. "#/compare?saved=<id>" resolves to the compare route.
+  const path = hash.replace(/^#\/?/, '').split('?')[0].replace(/\/$/, '')
   return ROUTE_BY_PATH[path] ?? 'not-found'
 }
 

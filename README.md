@@ -2,7 +2,7 @@
 
 Carbon Choices is a mobile-first web application that helps people understand and manage the environmental impact of their everyday decisions. It brings three feature areas together in one product: comparing everyday choices, setting carbon reduction goals and tracking personal carbon emissions. It implements the **Personal Carbon Trade-Offs** topic for **ISTE.260 – Designing the User Experience**, Deliverable 2.
 
-> **Status:** early development. The shared frontend shell is in place. Carbon Reduction Goals & Recommendations works with temporary sample data, and Personal Carbon Tracking works with activities stored temporarily in the browser. Compare Everyday Choices, the database, the external API integration and localisation are not implemented yet. See [Current Development Status](#current-development-status).
+> **Status:** early development. All three feature areas are integrated in one app. Compare Everyday Choices and Personal Carbon Tracking work with illustrative estimates and data stored temporarily in the browser; Carbon Reduction Goals & Recommendations works with temporary sample data. The database, the external API integration and localisation are not implemented yet. See [Current Development Status](#current-development-status).
 
 ---
 
@@ -55,18 +55,47 @@ Each feature area comes from one team member's Deliverable 1 wireframes. All thr
 
 ### 1. Compare Everyday Choices — *Faraj Aliyev*
 
-Compare transportation alternatives for the same journey based on:
+Compares ways of making the same journey (walking, cycling, bus, train, car and electric car) by CO₂ emissions, financial cost and travel time, and recommends the option that best matches the user's own priorities.
 
-- CO₂ emissions
-- financial cost
-- travel time
+The feature is at `#/compare` ("Compare journeys" in the navigation), with saved comparisons at `#/saved` ("Saved comparisons"). It implements the ten screens from Faraj's Deliverable 1 wireframes:
+
+| # | Screen | Where it is |
+|---|---|---|
+| 1 | Start | Opening screen of `#/compare` — `CompareStart.tsx` |
+| 2 | Choose transport | Step 1 — `ChooseTransport.tsx` + `ModePicker.tsx` |
+| 3 | Enter journey | Step 2 — `JourneyDetails.tsx` |
+| 4 | Set priorities | Step 3 — `SetPriorities.tsx` + `PriorityFields.tsx` |
+| 5 | Comparison results | "Results" tab — `ComparisonResults.tsx` |
+| 6 | Detailed breakdown | "Breakdown" tab — `CalculationBreakdown.tsx` |
+| 7 | Recommended option | "Recommendation" tab — `RecommendedOption.tsx` |
+| 8 | Alternative scenario | "What if" tab — `AlternativeScenario.tsx` |
+| 9 | Save comparison | "Save" tab — `SaveComparison.tsx`; list at `#/saved` — `SavedComparisonList.tsx` |
+| 10 | Error | Shown for missing or invalid information, failed calculations, a missing saved comparison or unreadable storage — `CompareError.tsx` |
+
+**User journey:** Start → choose at least two transport options → enter the start, destination, one-way distance and number of people → set how much CO₂, cost and time matter (not important / a little / important / very important) → results → breakdown, recommendation or a "what if" scenario → save → reopen later from Saved comparisons.
 
 | Functionality | Status |
 |---|---|
-| Navigation entry and placeholder page (`#/compare`) | ✅ |
-| Entering a journey | 📋 |
-| Side-by-side comparison of transport options (CO₂, cost, time) | 📋 |
-| Saving comparisons and viewing saved comparisons | 📋 (placeholder page at `#/saved`) |
+| Choosing 2–6 transport options | ✅ |
+| Journey form with validation next to each field (accepts `12.5` and `12,5`; distance 0–1000 km; 1–9 people; start and destination must differ) and a warning when walking or cycling is impractical for the distance | ✅ |
+| Priorities for CO₂, cost and travel time (0–3 each, at least one above 0) | ✅ |
+| Results: cards per option, "lowest CO₂ / cheapest / fastest" badges (ties included), side-by-side bars and a table of differences from the recommended option | ✅ |
+| Detailed breakdown: each formula with the actual numbers, the assumptions per option and the scoring table | ✅ |
+| Recommendation calculated from the scores and priorities, with reasons, trade-offs and the next best option | ✅ |
+| Alternative scenario: change distance, people, options and priorities, see the result recalculated live next to the current one, then apply or discard | ✅ |
+| Saving a comparison (name, date, options, journey, priorities, results and recommendation), listing, reopening and deleting with confirmation | ✅ Stored in this browser's `localStorage` |
+| Loading, empty, success and error states | ✅ |
+| Saving comparisons in the project database | 📋 Planned — see [Database](#database) |
+| Real routes, distances, fares or travel times from an external API | 📋 Planned — the user enters the distance; nothing is looked up |
+
+> **How the comparison is calculated** (`src/features/compare/calculate.ts` and `transportOptions.ts`). All results are **per person**:
+>
+> - **CO₂ (kg CO₂e)** = distance × emission factor ÷ people in the car (car and electric car only). The emission factors are reused from Personal Carbon Tracking (`src/features/tracking/emissionFactors.ts`), so both features give the same answer for the same trip.
+> - **Cost (EUR)** = fixed cost + distance × cost per km, shared by people in the car for cars. Public transport is one ticket each. Car costs include fuel or charging and parking only, not purchase, insurance or maintenance.
+> - **Travel time (min)** = distance ÷ average speed × 60 + fixed overhead (walking to a stop and waiting, locking a bike, parking).
+> - **Scores:** for each criterion, best option = 100%, worst = 0%, others in between. **Overall match** = Σ(priority × score) ÷ Σ(priority). The highest overall match is recommended; ties go to lower emissions, then shorter time.
+>
+> Cost, speed and overhead values are **illustrative assumptions** chosen to show trade-offs, not verified fares, timetables or traffic data. Every screen with figures labels them as estimates, and the breakdown screen lists each assumption.
 
 ### 2. Carbon Reduction Goals & Recommendations — *Martin Mudrinic*
 
@@ -142,7 +171,7 @@ The feature is at `#/tracking` ("Carbon tracking" in the navigation). It impleme
 |---|---|
 | Application shell: sidebar on desktop, hamburger menu on mobile | ✅ |
 | Home dashboard with introduction, three information cards and "How it works" | ✅ |
-| Placeholder pages for Compare journeys, Saved comparisons and Settings, and a "Page not found" page | ✅ |
+| Placeholder page for Settings, and a "Page not found" page | ✅ |
 | Reusable UI components and design tokens | ✅ |
 | Navigation entry for Goals (`#/goals`) | ✅ |
 | Navigation entry for Tracking (`#/tracking`) | ✅ |
@@ -182,7 +211,8 @@ Notes:
 
 - There is **no router library**. Navigation uses a small hash-based router in `src/hooks/useHashRoute.ts` (routes: `#/`, `#/compare`, `#/saved`, `#/goals`, `#/tracking`, `#/settings`).
 - There is **no backend, database, i18n library or test framework** installed yet.
-- Personal Carbon Tracking added **no new dependencies**.
+- Personal Carbon Tracking and Compare Everyday Choices added **no new dependencies**.
+- The router ignores a query part in the hash, so `#/compare?saved=<id>` opens the Compare page with a saved comparison (used by Saved comparisons). The address is reset to `#/compare` once it has opened.
 
 ### Prerequisites
 
@@ -218,6 +248,17 @@ personal-carbon-tradeoffs/
 │   │   ├── homeContent.ts     #   Text for the home dashboard
 │   │   └── navigation.ts      #   Navigation items and route mapping
 │   ├── features/              # Feature-specific code, one folder per feature area
+│   │   └── compare/           #   Compare Everyday Choices (Faraj)
+│   │       ├── components/    #     One component per screen, plus CompareUi.tsx, ModePicker.tsx, PriorityFields.tsx
+│   │       ├── calculate.ts   #     CO₂/cost/time estimates, scoring and recommendation
+│   │       ├── transportOptions.ts # ILLUSTRATIVE cost, speed and overhead per option (CO₂ factors from tracking)
+│   │       ├── criteria.ts    #     The three criteria and priority levels
+│   │       ├── comparisonRepository.ts # Saved comparisons (TEMPORARY localStorage implementation)
+│   │       ├── useSavedComparisons.ts # Loading/error state and delete for the saved list
+│   │       ├── validation.ts  #     Journey form values and validation
+│   │       ├── format.ts      #     kg CO₂e, EUR, duration, date and plural formatting (Intl, English)
+│   │       ├── types.ts       #     TypeScript types for the feature
+│   │       └── compare.css    #     Styles for the feature
 │   │   └── goals/             #   Carbon Reduction Goals & Recommendations (Martin)
 │   │       ├── components/    #     One component per screen, plus GoalsUi.tsx building blocks
 │   │       ├── budget.ts      #     Budget arithmetic (shares, monthly targets, ranking)
@@ -244,8 +285,8 @@ personal-carbon-tradeoffs/
 │   │   └── AppLayout.tsx      # App shell: skip link, navigation, main area, footer
 │   ├── pages/                 # One component per screen
 │   │   ├── HomePage.tsx
-│   │   ├── ComparePage.tsx    #   Placeholder
-│   │   ├── SavedPage.tsx      #   Placeholder
+│   │   ├── ComparePage.tsx    #   Compare journeys: steps, tabs and the Compare screens
+│   │   ├── SavedPage.tsx      #   Saved comparisons list
 │   │   ├── GoalsPage.tsx      #   Carbon goals: step navigation and the Goals screens
 │   │   ├── TrackingPage.tsx   #   Carbon tracking: tabs and the Tracking screens
 │   │   ├── SettingsPage.tsx   #   Placeholder
@@ -357,6 +398,8 @@ Personal Carbon Tracking reads and writes activities only through the `ActivityR
 - clearing site data deletes them, and they are not shared between users or devices;
 - this does **not** meet the brief's database requirement.
 
+Compare Everyday Choices works the same way: saved comparisons go only through the `ComparisonRepository` interface in `src/features/compare/comparisonRepository.ts`, whose current implementation stores them in `localStorage` under `carbon-choices.compare.comparisons.v1`, with the same limitations. The data model is `SavedComparison` in `src/features/compare/types.ts`: id, name, saved date, the input (options, journey and priorities) and a snapshot of the results and recommendation. The comparison currently being worked on is held in memory only.
+
 The data model the database will need for this feature is the `Activity` type in `src/features/tracking/types.ts`: an id, a date, an optional note, created/updated timestamps, and category-specific details (transport mode, distance and people; food item and servings; or energy source, kWh and household size). When the backend exists, an API-backed `ActivityRepository` can replace the local one without changing the screens.
 
 When the database is implemented, this section will document:
@@ -372,7 +415,7 @@ When the database is implemented, this section will document:
 
 Deliverable 2 requires integration with at least one external REST API whose data is genuinely related to the topic and does real work in the product (for example, providing emission factors, exchange rates or location data), not only decorative content. The integration must handle failure states such as network errors, timeouts, rate limits and empty results, and API keys must be kept out of client-side code.
 
-**Current state:** no external API has been selected or connected. The Goals feature shows temporary sample emission figures from `src/features/goals/sampleData.ts`. Personal Carbon Tracking calculates emission estimates from illustrative factors in `src/features/tracking/emissionFactors.ts`; an emission-factor API (for example Climatiq or Carbon Interface, both listed in the course brief) is a candidate for replacing them. No cost or travel-time values are calculated.
+**Current state:** no external API has been selected or connected. The Goals feature shows temporary sample emission figures from `src/features/goals/sampleData.ts`. Personal Carbon Tracking calculates emission estimates from illustrative factors in `src/features/tracking/emissionFactors.ts`; an emission-factor API (for example Climatiq or Carbon Interface, both listed in the course brief) is a candidate for replacing them. Compare Everyday Choices reuses those factors and calculates cost and travel time from illustrative assumptions in `src/features/compare/transportOptions.ts`; the user enters the distance, because no route or fare service is connected.
 
 When an API is integrated, this section will document which service is used, what it is used for, and how to obtain a key if one is required.
 
@@ -390,7 +433,7 @@ The application must support at least three locales:
 
 The brief also requires that every user-visible string is externalised, that plurals, dates, numbers and currencies use locale-aware formatting, that the HTML `lang` attribute follows the selected locale, and that the chosen locale persists across reloads.
 
-**Current state: localization is not implemented.** The interface is English only, strings are currently written directly in components, in `src/data/homeContent.ts`, in `src/features/goals/` and in `src/features/tracking/` (numbers, dates and plurals in both features already go through `Intl` formatters in their `format.ts`, fixed to English), no i18n library is installed, and there is no language switcher. `index.html` sets `lang="en"`.
+**Current state: localization is not implemented.** The interface is English only, strings are currently written directly in components, in `src/data/homeContent.ts`, in `src/features/goals/`, `src/features/tracking/` and `src/features/compare/` (numbers, currency, dates and plurals in these features already go through `Intl` formatters in their `format.ts`, fixed to English), no i18n library is installed, and there is no language switcher. `index.html` sets `lang="en"`.
 
 How to add a new locale will be documented here once the i18n setup is in place.
 
@@ -432,13 +475,22 @@ The project targets **WCAG 2.2 level AA**, as required by the course brief.
 - Categories are shown with an icon and text, never colour alone; bars use `role="progressbar"` with a text value; the breakdown table has a caption and column/row headers.
 - Checked in the browser at 320 px, 768 px and 1024 px wide with no horizontal scrolling.
 
+### In the Compare feature
+
+- Transport options are real checkboxes and priorities are radio groups, each inside a `fieldset` with a `legend`; selection is shown with a tick or filled border, not colour alone.
+- Journey and save forms have visible labels, hints and errors linked with `aria-describedby`, `aria-invalid` on invalid fields, an error summary announced as an alert, and focus moved to the first invalid field.
+- The current setup step uses `aria-current="step"` and the current result tab `aria-current="page"` (with an underline); focus moves to the new screen's heading when the screen changes, and confirmations are announced through a `role="status"` live region.
+- Bars have a text alternative with the value; tables have captions and row/column headers; transport options are always shown with an icon and a name.
+- Deleting a saved comparison uses the native `<dialog>` with focus on Cancel and <kbd>Esc</kbd> to cancel.
+- Checked in the browser at 320 px, 375 px and about 1000 px wide with no horizontal page scrolling (wide tables scroll inside their own box).
+
 ### Not done yet
 
 - The course's ten-minute accessibility check (Section 7.3 of the brief) has not been performed.
 - No automated accessibility scan or screen reader walkthrough has been recorded.
 - Contrast ratios have not been formally measured with a checking tool.
 - 200% zoom has not been tested.
-- The forms, error messages and live regions in the Goals and Tracking features have not been tested with a screen reader.
+- The forms, error messages and live regions in the Goals, Tracking and Compare features have not been tested with a screen reader.
 
 Results will be recorded here and in the Deliverable 2 document as testing is carried out.
 
@@ -498,9 +550,9 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 |---|---|
 | Project setup (React, TypeScript, Vite, ESLint) | ✅ Done |
 | Shared frontend foundation: layout, navigation, home dashboard, reusable components, design tokens | ✅ Done (merged into `main` through Pull Request #1) |
-| Compare Everyday Choices | 📋 Planned — placeholder page only |
+| Compare Everyday Choices | 🚧 In progress — all ten screens work, including saving, reopening and deleting comparisons; comparisons are stored temporarily in the browser and figures use illustrative factors and assumptions |
 | Carbon Reduction Goals & Recommendations | 🚧 In progress — all ten screens are interactive (merged into `main` through Pull Request #2) with sample data; no saving yet |
-| Personal Carbon Tracking | 🚧 In progress — all ten screens work, with full create/read/update/delete; activities are stored temporarily in the browser and emissions use illustrative factors |
+| Personal Carbon Tracking | 🚧 In progress — all ten screens work (merged into `main` through Pull Request #3), with full create/read/update/delete; activities are stored temporarily in the browser and emissions use illustrative factors |
 | Database | 📋 Planned |
 | External REST API | 📋 Planned |
 | Internationalization (en, hr, third locale) | 📋 Planned |
@@ -511,7 +563,10 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 
 ## Known Limitations
 
-- Compare journeys, Saved comparisons and Settings show "not available yet" pages.
+- Settings shows a "not available yet" page.
+- Saved comparisons are stored in the browser's `localStorage`, not in a database: they stay on one device and are lost if site data is cleared. If that data is damaged, the app shows an error but cannot repair it; clearing site data is the only fix for now.
+- Compare uses distances entered by the user and illustrative cost, speed and waiting-time assumptions, not real routes, fares, timetables or traffic. Car costs leave out purchase, insurance and maintenance.
+- The comparison in progress and the screen within Compare journeys are not part of the URL, so reloading or leaving the page returns to the start screen (saved comparisons can be reopened).
 - Carbon tracking stores activities in the browser's `localStorage`, not in a database: data stays on one device and is lost if site data is cleared.
 - Carbon tracking emission estimates use illustrative factors, not a verified dataset or API.
 - The screen within Carbon tracking (for example an activity's details) is not part of the URL, so reloading returns to the dashboard and the browser Back button leaves the feature.
@@ -519,7 +574,7 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 - Carbon goals works with temporary sample data only: the current emissions, this month's usage and the recommendation savings are placeholders, not measurements or calculations.
 - A carbon plan in Carbon goals is not stored and resets when the page is reloaded.
 - The step within Carbon goals is not part of the URL, so reloading returns to step 1.
-- No external API is connected; the app shows no real emissions, cost or travel-time data.
+- No external API is connected; all emissions, cost and travel-time figures are illustrative estimates, not real data.
 - The interface is English only, and user-visible strings are not externalised.
 - Routing is hash-based (`#/compare`), so URLs contain a `#`.
 - There are no automated tests.

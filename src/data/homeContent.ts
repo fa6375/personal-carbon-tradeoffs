@@ -37,7 +37,7 @@ export interface Step {
   description: string
 }
 
-/** Planned user flow. These steps describe intent; they are not built yet. */
+/** The journey comparison flow, implemented at #/compare. */
 export const STEPS: Step[] = [
   {
     title: 'Describe your journey',
