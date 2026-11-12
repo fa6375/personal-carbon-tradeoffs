@@ -1,14 +1,10 @@
 import { useState, type Dispatch } from 'react'
 import { ButtonLink } from '../../../components/ButtonLink'
+import { useI18n, type MessageKey } from '../../../i18n'
 import { allocationFromAmounts, getBaselineKg, getBudgetKg, splitKg, sumAmounts } from '../budget'
-import { formatCount, formatKg, formatMonth, getUpcomingMonths } from '../format'
+import { formatKg, formatMonth, formatPercentValue, getUpcomingMonths } from '../format'
 import type { GoalPlanAction } from '../goalPlanReducer'
-import {
-  CUSTOM_BASELINE_LIMITS,
-  DURATION_OPTIONS,
-  REDUCTION_OPTIONS,
-  SAMPLE_BASELINE,
-} from '../sampleData'
+import { CUSTOM_BASELINE_LIMITS, DURATION_OPTIONS, REDUCTION_OPTIONS, SAMPLE_BASELINE } from '../sampleData'
 import type { TrackedData } from '../trackedEmissions'
 import type { BaselineSource, GoalPlan } from '../types'
 import { LoadingLine, Notice, Panel, SampleDataNotice } from './GoalsUi'
@@ -21,19 +17,25 @@ interface BudgetSetupProps {
 
 const SAMPLE_TOTAL = sumAmounts(SAMPLE_BASELINE)
 
-function validateCustom(value: string): string | null {
+/** Accepts "450", "450.5" and "450,5". */
+function parseAmount(value: string): number {
+  const normalised = value.trim().replace(',', '.')
+  return /^\d+(\.\d+)?$/.test(normalised) ? Number(normalised) : Number.NaN
+}
+
+/** Returns the translation key of the problem, or null if the value is valid. */
+function validateCustom(value: string): MessageKey | null {
   const { min, max } = CUSTOM_BASELINE_LIMITS
-  if (value.trim() === '') return 'Enter your current monthly emissions.'
-  const number = Number(value)
-  if (!Number.isFinite(number)) return 'Enter a number, for example 450.'
-  if (number < min || number > max) {
-    return `Enter an amount between ${min} and ${max} kg CO₂e.`
-  }
+  if (value.trim() === '') return 'goals.setup.customRequired'
+  const number = parseAmount(value)
+  if (!Number.isFinite(number)) return 'goals.setup.customNotNumber'
+  if (number < min || number > max) return 'goals.setup.customRange'
   return null
 }
 
 /** Screen 1 – Carbon budget setup. */
 export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
+  const { t } = useI18n()
   const [monthOptions] = useState(() => {
     const upcoming = getUpcomingMonths(6)
     return upcoming.includes(plan.startMonth) ? upcoming : [plan.startMonth, ...upcoming]
@@ -42,7 +44,7 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
   const [customValue, setCustomValue] = useState(
     plan.baseline.source === 'custom' ? String(getBaselineKg(plan)) : '',
   )
-  const [customError, setCustomError] = useState<string | null>(null)
+  const [customError, setCustomError] = useState<MessageKey | null>(null)
 
   const trackedKg = sumAmounts(tracked.last30Days.amounts)
   const trackedAvailable = tracked.status === 'ready' && trackedKg > 0
@@ -64,11 +66,7 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
     setCustomError(null)
     dispatch({
       type: 'setBaseline',
-      baseline: {
-        source: 'tracked',
-        amounts: { ...tracked.last30Days.amounts },
-        takenAt: new Date().toISOString(),
-      },
+      baseline: { source: 'tracked', amounts: { ...tracked.last30Days.amounts }, takenAt: new Date().toISOString() },
     })
   }
 
@@ -77,7 +75,7 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
     setCustomError(error)
     if (error) return
     // Split the total across categories in the same proportions as the sample.
-    const amounts = splitKg(Number(value), allocationFromAmounts(SAMPLE_BASELINE))
+    const amounts = splitKg(parseAmount(value), allocationFromAmounts(SAMPLE_BASELINE))
     dispatch({ type: 'setBaseline', baseline: { source: 'custom', amounts } })
   }
 
@@ -87,14 +85,10 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
   }
 
   return (
-    <Panel
-      id="goals-setup-title"
-      title="Carbon budget setup"
-      description="Your carbon budget is the amount of greenhouse gas, in kilograms of CO₂-equivalent (kg CO₂e), you aim to stay within each month. Start from what you emit now, then choose how much to cut and how quickly."
-    >
+    <Panel id="goals-setup-title" title={t('goals.setup.title')} description={t('goals.setup.description')}>
       <form className="goals-form" noValidate onSubmit={(event) => event.preventDefault()}>
         <fieldset className="goals-fieldset">
-          <legend className="goals-label">Your current monthly emissions</legend>
+          <legend className="goals-label">{t('goals.setup.baselineLegend')}</legend>
           <div className="goals-radio-list">
             <label className="goals-radio">
               <input
@@ -106,50 +100,43 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
                 onChange={chooseTracked}
               />
               <span>
-                <span className="goals-radio__title">From Carbon tracking</span>
+                <span className="goals-radio__title">{t('goals.setup.fromTracking')}</span>
                 <span id="baseline-tracked-hint" className="goals-hint">
-                  {tracked.status === 'loading' && 'Checking your tracked activities…'}
-                  {tracked.status === 'error' && 'Your tracked activities could not be read.'}
+                  {tracked.status === 'loading' && t('goals.setup.trackingChecking')}
+                  {tracked.status === 'error' && t('goals.setup.trackingError')}
                   {tracked.status === 'ready' &&
                     (trackedAvailable
-                      ? `${formatKg(trackedKg)} from ${formatCount(tracked.last30Days.count, 'activity', 'activities')} in the last 30 days.`
-                      : 'No activities recorded in the last 30 days yet.')}
+                      ? t('goals.setup.trackingSummary', {
+                          kg: formatKg(trackedKg),
+                          activities: t('tracking.activityCount', { count: tracked.last30Days.count }),
+                        })
+                      : t('goals.setup.trackingNone'))}
                 </span>
               </span>
             </label>
 
             <label className="goals-radio">
-              <input
-                type="radio"
-                name="baseline-source"
-                checked={source === 'custom'}
-                onChange={chooseCustom}
-              />
+              <input type="radio" name="baseline-source" checked={source === 'custom'} onChange={chooseCustom} />
               <span>
-                <span className="goals-radio__title">Enter my own estimate</span>
-                <span className="goals-hint">For example from a carbon calculator you used.</span>
+                <span className="goals-radio__title">{t('goals.setup.ownEstimate')}</span>
+                <span className="goals-hint">{t('goals.setup.ownEstimateHint')}</span>
               </span>
             </label>
 
             <label className="goals-radio">
-              <input
-                type="radio"
-                name="baseline-source"
-                checked={source === 'sample'}
-                onChange={chooseSample}
-              />
+              <input type="radio" name="baseline-source" checked={source === 'sample'} onChange={chooseSample} />
               <span>
-                <span className="goals-radio__title">Use the sample value</span>
-                <span className="goals-hint">{formatKg(SAMPLE_TOTAL)} a month, for trying the feature out.</span>
+                <span className="goals-radio__title">{t('goals.setup.sample')}</span>
+                <span className="goals-hint">{t('goals.setup.sampleHint', { kg: formatKg(SAMPLE_TOTAL) })}</span>
               </span>
             </label>
           </div>
 
-          {tracked.status === 'loading' && <LoadingLine>Loading Carbon tracking…</LoadingLine>}
+          {tracked.status === 'loading' && <LoadingLine>{t('goals.setup.loadingTracking')}</LoadingLine>}
           {tracked.status === 'ready' && !trackedAvailable && (
             <div className="goals-inline-action">
               <ButtonLink href="#/tracking" variant="secondary" icon="arrow-right">
-                Record activities in Carbon tracking
+                {t('goals.setup.recordActivities')}
               </ButtonLink>
             </div>
           )}
@@ -157,16 +144,15 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
           {source === 'custom' && (
             <div className="goals-field goals-field--nested">
               <label className="goals-label" htmlFor="goals-custom-baseline">
-                Monthly emissions (kg CO₂e)
+                {t('goals.setup.customLabel')}
               </label>
               <input
                 id="goals-custom-baseline"
                 className="goals-input goals-input--short"
-                type="number"
+                type="text"
                 inputMode="decimal"
-                min={CUSTOM_BASELINE_LIMITS.min}
-                max={CUSTOM_BASELINE_LIMITS.max}
-                step="any"
+                autoComplete="off"
+                required
                 value={customValue}
                 aria-invalid={customError ? true : undefined}
                 aria-describedby={`goals-custom-hint${customError ? ' goals-custom-error' : ''}`}
@@ -176,12 +162,11 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
                 }}
               />
               <p id="goals-custom-hint" className="goals-hint">
-                Between {CUSTOM_BASELINE_LIMITS.min} and {CUSTOM_BASELINE_LIMITS.max} kg. It is split
-                across categories in the same proportions as the sample.
+                {t('goals.setup.customHint', CUSTOM_BASELINE_LIMITS)}
               </p>
               {customError && (
                 <p id="goals-custom-error" className="goals-error">
-                  {customError}
+                  {t(customError, CUSTOM_BASELINE_LIMITS)}
                 </p>
               )}
             </div>
@@ -189,9 +174,9 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
         </fieldset>
 
         <fieldset className="goals-fieldset">
-          <legend className="goals-label">Reduction goal</legend>
+          <legend className="goals-label">{t('goals.setup.reductionLegend')}</legend>
           <p className="goals-hint" id="reduction-hint">
-            How much lower than your current monthly emissions your budget should be.
+            {t('goals.setup.reductionHint')}
           </p>
           <div className="goals-choice-group">
             {reductionOptions.map((percent) => (
@@ -204,7 +189,7 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
                   aria-describedby="reduction-hint"
                   onChange={() => dispatch({ type: 'setReduction', percent })}
                 />
-                <span>{percent}%</span>
+                <span>{formatPercentValue(percent)}</span>
               </label>
             ))}
           </div>
@@ -212,7 +197,7 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
 
         <div className="goals-form__row">
           <fieldset className="goals-fieldset">
-            <legend className="goals-label">Time to reach the goal</legend>
+            <legend className="goals-label">{t('goals.setup.durationLegend')}</legend>
             <div className="goals-choice-group">
               {DURATION_OPTIONS.map((months) => (
                 <label key={months} className="goals-choice">
@@ -223,7 +208,7 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
                     checked={plan.durationMonths === months}
                     onChange={() => dispatch({ type: 'setDuration', months })}
                   />
-                  <span>{months} months</span>
+                  <span>{t('goals.setup.months', { count: months })}</span>
                 </label>
               ))}
             </div>
@@ -231,7 +216,7 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
 
           <div className="goals-field">
             <label className="goals-label" htmlFor="goals-start-month">
-              Start month
+              {t('goals.setup.startMonth')}
             </label>
             <select
               id="goals-start-month"
@@ -250,22 +235,17 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
       </form>
 
       <div className="goals-callout" aria-live="polite">
-        Cutting <strong>{plan.reductionPercent}%</strong> from {formatKg(getBaselineKg(plan))} gives
-        a monthly budget of <strong>{formatKg(budgetKg)}</strong> by{' '}
-        {formatMonth(plan.startMonth, plan.durationMonths - 1)}.
+        {t('goals.setup.result', {
+          percent: formatPercentValue(plan.reductionPercent),
+          baseline: formatKg(getBaselineKg(plan)),
+          budget: formatKg(budgetKg),
+          month: formatMonth(plan.startMonth, plan.durationMonths - 1),
+        })}
       </div>
 
-      {plan.baseline.source === 'sample' && (
-        <SampleDataNotice>
-          The starting point is a placeholder. Choose “From Carbon tracking” once you have recorded
-          activities.
-        </SampleDataNotice>
-      )}
+      {plan.baseline.source === 'sample' && <SampleDataNotice>{t('goals.setup.sampleNotice')}</SampleDataNotice>}
       {plan.baseline.source === 'tracked' && (
-        <Notice title="From Carbon tracking.">
-          Based on activities recorded in the last 30 days, using the illustrative emission factors
-          from Carbon tracking.
-        </Notice>
+        <Notice title={t('goals.ui.fromTrackingTitle')}>{t('goals.setup.trackedNotice')}</Notice>
       )}
     </Panel>
   )

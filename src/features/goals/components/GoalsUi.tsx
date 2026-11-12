@@ -2,7 +2,9 @@
 import type { ReactNode } from 'react'
 import { Button } from '../../../components/Button'
 import { Icon } from '../../../components/Icon'
+import { t } from '../../../i18n'
 import { getAllocationTotal, type PaceStatus } from '../budget'
+import { formatPercentValue } from '../format'
 import type { Allocation } from '../types'
 
 interface PanelProps {
@@ -46,6 +48,8 @@ export function StatTile({ label, value, hint, highlight = false }: StatTileProp
   )
 }
 
+type Tone = 'default' | 'muted' | 'warning' | 'danger'
+
 interface ProgressBarProps {
   value: number
   max: number
@@ -53,22 +57,20 @@ interface ProgressBarProps {
   label: string
   /** Human-readable value for screen readers, e.g. "120 of 200 kg". */
   valueText: string
-  tone?: 'default' | 'muted' | 'warning' | 'danger'
+  tone?: Tone
   /** Sets the tone from a pace status; overrides `tone`. */
   status?: PaceStatus
   /** Optional marker position (0–1), e.g. how much of the month has passed. */
   marker?: number
 }
 
-export function ProgressBar({
-  value,
-  max,
-  label,
-  valueText,
-  tone = 'default',
-  status,
-  marker,
-}: ProgressBarProps) {
+const STATUS_TONE: Record<PaceStatus, Tone> = {
+  'on-track': 'default',
+  close: 'warning',
+  over: 'danger',
+}
+
+export function ProgressBar({ value, max, label, valueText, tone = 'default', status, marker }: ProgressBarProps) {
   const fillTone = status ? STATUS_TONE[status] : tone
   const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : value > 0 ? 100 : 0
   return (
@@ -81,31 +83,15 @@ export function ProgressBar({
       aria-valuenow={Math.min(value, max)}
       aria-valuetext={valueText}
     >
-      <div
-        className={`goals-progress__fill goals-progress__fill--${fillTone}`}
-        style={{ width: `${percent}%` }}
-      />
-      {marker !== undefined && (
-        <div className="goals-progress__marker" style={{ left: `${marker * 100}%` }} />
-      )}
+      <div className={`goals-progress__fill goals-progress__fill--${fillTone}`} style={{ width: `${percent}%` }} />
+      {marker !== undefined && <div className="goals-progress__marker" style={{ left: `${marker * 100}%` }} />}
     </div>
   )
 }
 
-const STATUS_LABEL: Record<PaceStatus, string> = {
-  'on-track': 'On track',
-  close: 'Ahead of pace',
-  over: 'Over budget',
-}
-
+/** Pace status as text with a symbol, so it is never shown by colour alone. */
 export function StatusBadge({ status }: { status: PaceStatus }) {
-  return <span className={`goals-badge goals-badge--${status}`}>{STATUS_LABEL[status]}</span>
-}
-
-const STATUS_TONE: Record<PaceStatus, ProgressBarProps['tone']> = {
-  'on-track': 'default',
-  close: 'warning',
-  over: 'danger',
+  return <span className={`goals-badge goals-badge--${status}`}>{t(`goals.ui.status.${status}`)}</span>
 }
 
 interface NoticeProps {
@@ -128,12 +114,12 @@ export function Notice({ title, children }: NoticeProps) {
 
 /** Marks content that is based on temporary sample data. */
 export function SampleDataNotice({ children }: { children: ReactNode }) {
-  return <Notice title="Sample data.">{children}</Notice>
+  return <Notice title={t('goals.ui.sampleTitle')}>{children}</Notice>
 }
 
 /** Explains that figures are estimates from the shared illustrative factors. */
 export function EstimateNotice({ children }: { children: ReactNode }) {
-  return <Notice title="Estimates.">{children}</Notice>
+  return <Notice title={t('goals.ui.estimateTitle')}>{children}</Notice>
 }
 
 interface AllocationWarningProps {
@@ -150,18 +136,15 @@ export function AllocationWarning({ allocation, onFix }: AllocationWarningProps)
   if (total === 100) return null
   return (
     <div className="goals-callout goals-callout--warning goals-callout--action" role="alert">
-      <p>
-        Your categories add up to <strong>{total}%</strong> of the budget, not 100%, so category
-        budgets do not match your monthly budget.
-      </p>
+      <p>{t('goals.ui.allocationWarning', { total: formatPercentValue(total) })}</p>
       <Button variant="secondary" onClick={onFix}>
-        Fix allocation
+        {t('goals.ui.fixAllocation')}
       </Button>
     </div>
   )
 }
 
-/** Inline loading message for data read from Carbon tracking. */
+/** Inline loading message for data read from Carbon tracking or the database. */
 export function LoadingLine({ children }: { children: ReactNode }) {
   return (
     <p className="goals-loading" role="status">
@@ -181,7 +164,7 @@ export function ErrorLine({ message, onRetry }: ErrorLineProps) {
     <div className="goals-callout goals-callout--danger goals-callout--action" role="alert">
       <p>{message}</p>
       <Button variant="secondary" onClick={onRetry}>
-        Try again
+        {t('actions.tryAgain')}
       </Button>
     </div>
   )

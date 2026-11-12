@@ -1,5 +1,6 @@
+import { t, useI18n } from '../../../i18n'
 import { roundKg, splitKg } from '../budget'
-import { formatDateTime, formatKg } from '../format'
+import { formatDateTime, formatKg, formatPercentValue } from '../format'
 import { CATEGORIES, getCategoryLabel } from '../sampleData'
 import type { BudgetAdjustment, GoalPlan } from '../types'
 import { Panel } from './GoalsUi'
@@ -12,29 +13,29 @@ interface AdjustmentDetailsProps {
 
 function summary(adjustment: BudgetAdjustment): string {
   return adjustment.kind === 'reallocate'
-    ? `${getCategoryLabel(adjustment.from)} → ${getCategoryLabel(adjustment.to)}, ${adjustment.percentPoints}%`
-    : `Goal ${adjustment.reductionBefore}% → ${adjustment.reductionAfter}%`
+    ? t('goals.details.summaryMove', {
+        from: getCategoryLabel(adjustment.from),
+        to: getCategoryLabel(adjustment.to),
+        percent: formatPercentValue(adjustment.percentPoints),
+      })
+    : t('goals.details.summaryGoal', {
+        before: formatPercentValue(adjustment.reductionBefore),
+        after: formatPercentValue(adjustment.reductionAfter),
+      })
 }
 
 /** Screen 9 – Budget adjustment details. */
 export function AdjustmentDetails({ plan, selectedId, onSelect }: AdjustmentDetailsProps) {
-  const selected =
-    plan.adjustments.find((adjustment) => adjustment.id === selectedId) ?? plan.adjustments[0]
+  const { t } = useI18n()
+  const selected = plan.adjustments.find((adjustment) => adjustment.id === selectedId) ?? plan.adjustments[0]
 
   return (
-    <Panel
-      id="goals-adjust-details-title"
-      title="Budget adjustment details"
-      description="What changed with each adjustment, with the values before and after."
-    >
+    <Panel id="goals-adjust-details-title" title={t('goals.details.title')} description={t('goals.details.description')}>
       {plan.adjustments.length === 0 ? (
-        <p className="goals-empty">
-          No adjustments yet. When you move budget between categories or change your goal, the
-          details appear here.
-        </p>
+        <p className="goals-empty">{t('goals.details.empty')}</p>
       ) : (
         <div className="goals-adjustments">
-          <ul className="goals-adjustments__list" aria-label="Adjustments, newest first">
+          <ul className="goals-adjustments__list" aria-label={t('goals.details.listLabel')}>
             {plan.adjustments.map((adjustment) => (
               <li key={adjustment.id}>
                 <button
@@ -57,6 +58,7 @@ export function AdjustmentDetails({ plan, selectedId, onSelect }: AdjustmentDeta
 }
 
 function AdjustmentDetail({ adjustment }: { adjustment: BudgetAdjustment }) {
+  const { t } = useI18n()
   const before = splitKg(adjustment.budgetBefore, adjustment.allocationBefore)
   const after = splitKg(adjustment.budgetAfter, adjustment.allocationAfter)
   const budgetChange = roundKg(adjustment.budgetAfter - adjustment.budgetBefore)
@@ -68,14 +70,16 @@ function AdjustmentDetail({ adjustment }: { adjustment: BudgetAdjustment }) {
         {adjustment.kind === 'reallocate' ? (
           <>
             <div>
-              <dt>Moved</dt>
+              <dt>{t('goals.details.moved')}</dt>
               <dd>
-                {adjustment.percentPoints}% · {formatKg(roundKg(after[adjustment.to] - before[adjustment.to]))}{' '}
-                a month
+                {t('goals.details.movedValue', {
+                  percent: formatPercentValue(adjustment.percentPoints),
+                  kg: formatKg(roundKg(after[adjustment.to] - before[adjustment.to])),
+                })}
               </dd>
             </div>
             <div>
-              <dt>From → to</dt>
+              <dt>{t('goals.details.fromTo')}</dt>
               <dd>
                 {getCategoryLabel(adjustment.from)} → {getCategoryLabel(adjustment.to)}
               </dd>
@@ -84,39 +88,38 @@ function AdjustmentDetail({ adjustment }: { adjustment: BudgetAdjustment }) {
         ) : (
           <>
             <div>
-              <dt>Reduction goal</dt>
+              <dt>{t('goals.details.reductionGoal')}</dt>
               <dd>
-                {adjustment.reductionBefore}% → {adjustment.reductionAfter}%
+                {formatPercentValue(adjustment.reductionBefore)} → {formatPercentValue(adjustment.reductionAfter)}
               </dd>
             </div>
             <div>
-              <dt>Monthly budget</dt>
+              <dt>{t('goals.details.monthlyBudget')}</dt>
               <dd>
-                {formatKg(adjustment.budgetBefore)} → {formatKg(adjustment.budgetAfter)} (
-                {budgetChange > 0 ? '+' : ''}
+                {formatKg(adjustment.budgetBefore)} → {formatKg(adjustment.budgetAfter)} ({budgetChange > 0 ? '+' : ''}
                 {formatKg(budgetChange)})
               </dd>
             </div>
           </>
         )}
         <div>
-          <dt>When</dt>
+          <dt>{t('goals.details.when')}</dt>
           <dd>{formatDateTime(adjustment.createdAt)}</dd>
         </div>
         <div>
-          <dt>Reason</dt>
-          <dd>{adjustment.reason || 'No reason given'}</dd>
+          <dt>{t('goals.details.reason')}</dt>
+          <dd>{adjustment.reason || t('goals.details.noReason')}</dd>
         </div>
       </dl>
 
       <div className="goals-table-wrap">
         <table className="goals-table">
-          <caption className="goals-table__caption">Final monthly budget by category</caption>
+          <caption className="goals-table__caption">{t('goals.details.caption')}</caption>
           <thead>
             <tr>
-              <th scope="col">Category</th>
-              <th scope="col">Before</th>
-              <th scope="col">After</th>
+              <th scope="col">{t('goals.details.category')}</th>
+              <th scope="col">{t('goals.details.before')}</th>
+              <th scope="col">{t('goals.details.after')}</th>
             </tr>
           </thead>
           <tbody>
@@ -128,17 +131,17 @@ function AdjustmentDetail({ adjustment }: { adjustment: BudgetAdjustment }) {
                 <tr key={category.id} className={changed ? 'goals-table__row--changed' : undefined}>
                   <th scope="row">{category.label}</th>
                   <td>
-                    {percentBefore}% · {formatKg(before[category.id])}
+                    {formatPercentValue(percentBefore)} · {formatKg(before[category.id])}
                   </td>
                   <td>
-                    {percentAfter}% · {formatKg(after[category.id])}
-                    {changed && <span className="visually-hidden"> (changed)</span>}
+                    {formatPercentValue(percentAfter)} · {formatKg(after[category.id])}
+                    {changed && <span className="visually-hidden"> {t('goals.details.changed')}</span>}
                   </td>
                 </tr>
               )
             })}
             <tr className="goals-table__total">
-              <th scope="row">Total</th>
+              <th scope="row">{t('goals.details.total')}</th>
               <td>{formatKg(adjustment.budgetBefore)}</td>
               <td>{formatKg(adjustment.budgetAfter)}</td>
             </tr>

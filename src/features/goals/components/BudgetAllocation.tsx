@@ -1,7 +1,8 @@
 import type { Dispatch } from 'react'
 import { Button } from '../../../components/Button'
+import { useI18n } from '../../../i18n'
 import { getAllocationTotal, getBudgetKg, roundKg, splitKg, sumAmounts } from '../budget'
-import { formatKg } from '../format'
+import { formatKg, formatPercentValue } from '../format'
 import type { GoalPlanAction } from '../goalPlanReducer'
 import { CATEGORIES } from '../sampleData'
 import type { GoalPlan } from '../types'
@@ -14,6 +15,7 @@ interface BudgetAllocationProps {
 
 /** Screen 3 – Budget allocation by category. */
 export function BudgetAllocation({ plan, dispatch }: BudgetAllocationProps) {
+  const { t } = useI18n()
   const budgetKg = getBudgetKg(plan)
   const split = splitKg(budgetKg, plan.allocation)
   const total = getAllocationTotal(plan.allocation)
@@ -22,8 +24,8 @@ export function BudgetAllocation({ plan, dispatch }: BudgetAllocationProps) {
   return (
     <Panel
       id="goals-allocation-title"
-      title="Budget allocation by category"
-      description={`Share your ${formatKg(budgetKg)} monthly budget between the parts of your life that produce emissions. The same categories are used in Carbon tracking.`}
+      title={t('goals.allocation.title')}
+      description={t('goals.allocation.description', { budget: formatKg(budgetKg) })}
     >
       <ul className="goals-allocation">
         {CATEGORIES.map((category) => {
@@ -32,6 +34,12 @@ export function BudgetAllocation({ plan, dispatch }: BudgetAllocationProps) {
           const percent = plan.allocation[category.id]
           const nowKg = plan.baseline.amounts[category.id]
           const change = split[category.id] - nowKg
+          const changeText =
+            change < 0
+              ? ` · ${t('goals.allocation.cut', { kg: formatKg(-change) })}`
+              : change > 0
+                ? ` · ${t('goals.allocation.room', { kg: formatKg(change) })}`
+                : ''
           return (
             <li key={category.id} className="goals-allocation__item">
               <div className="goals-allocation__label">
@@ -39,16 +47,12 @@ export function BudgetAllocation({ plan, dispatch }: BudgetAllocationProps) {
                   {category.label}
                 </label>
                 <span className="goals-allocation__value">
-                  {percent}% · {formatKg(split[category.id])}
+                  {formatPercentValue(percent)} · {formatKg(split[category.id])}
                 </span>
               </div>
               <p id={hintId} className="goals-hint">
-                Now {formatKg(nowKg)}
-                {change < 0
-                  ? ` · cut ${formatKg(-change)}`
-                  : change > 0
-                    ? ` · ${formatKg(change)} more room than now`
-                    : ''}
+                {t('goals.allocation.now', { kg: formatKg(nowKg) })}
+                {changeText}
               </p>
               <input
                 id={inputId}
@@ -59,13 +63,9 @@ export function BudgetAllocation({ plan, dispatch }: BudgetAllocationProps) {
                 step={1}
                 value={percent}
                 aria-describedby={hintId}
-                aria-valuetext={`${percent}%, ${formatKg(split[category.id])}`}
+                aria-valuetext={`${formatPercentValue(percent)}, ${formatKg(split[category.id])}`}
                 onChange={(event) =>
-                  dispatch({
-                    type: 'setAllocation',
-                    category: category.id,
-                    percent: Number(event.target.value),
-                  })
+                  dispatch({ type: 'setAllocation', category: category.id, percent: Number(event.target.value) })
                 }
               />
             </li>
@@ -73,28 +73,20 @@ export function BudgetAllocation({ plan, dispatch }: BudgetAllocationProps) {
         })}
       </ul>
 
-      <div
-        className={`goals-callout${remaining === 0 ? '' : ' goals-callout--warning'}`}
-        role="status"
-      >
-        {remaining === 0 && <>All 100% of your budget is allocated.</>}
-        {remaining > 0 && (
-          <>
-            <strong>{remaining}%</strong> ({formatKg(roundKg(budgetKg - sumAmounts(split)))}) of
-            your budget is not allocated yet. Raise a category until the total is 100%.
-          </>
-        )}
-        {remaining < 0 && (
-          <>
-            You have allocated <strong>{total}%</strong>, which is {-remaining}% more than your
-            budget. Lower a category until the total is 100%.
-          </>
-        )}
+      <div className={`goals-callout${remaining === 0 ? '' : ' goals-callout--warning'}`} role="status">
+        {remaining === 0 && t('goals.allocation.complete')}
+        {remaining > 0 &&
+          t('goals.allocation.remaining', {
+            percent: formatPercentValue(remaining),
+            kg: formatKg(roundKg(budgetKg - sumAmounts(split))),
+          })}
+        {remaining < 0 &&
+          t('goals.allocation.over', { total: formatPercentValue(total), over: formatPercentValue(-remaining) })}
       </div>
 
       <div className="goals-actions">
         <Button variant="secondary" onClick={() => dispatch({ type: 'resetAllocation' })}>
-          Match my current split
+          {t('goals.allocation.matchCurrent')}
         </Button>
       </div>
     </Panel>

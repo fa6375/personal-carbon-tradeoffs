@@ -1,7 +1,8 @@
 import { useState, type Dispatch, type FormEvent } from 'react'
 import { Button } from '../../../components/Button'
+import { useI18n, type MessageKey, type MessageParams } from '../../../i18n'
 import { getBaselineKg, getBudgetKg, roundKg, shareToKg } from '../budget'
-import { formatKg } from '../format'
+import { formatKg, formatPercentValue } from '../format'
 import type { GoalPlanAction } from '../goalPlanReducer'
 import { CATEGORIES, getCategoryLabel, REDUCTION_LIMITS } from '../sampleData'
 import type { CategoryId, GoalPlan } from '../types'
@@ -16,10 +17,16 @@ interface BudgetAdjustmentFormProps {
 
 type Mode = 'reallocate' | 'goal'
 
+/** A translation key with its parameters, so messages follow language changes. */
+interface Message {
+  key: MessageKey
+  params?: MessageParams
+}
+
 interface FormErrors {
-  to?: string
-  amount?: string
-  reduction?: string
+  to?: Message
+  amount?: Message
+  reduction?: Message
 }
 
 function newId(): string {
@@ -30,6 +37,7 @@ function newId(): string {
 
 /** Screen 6 – Budget adjustment. */
 export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjustmentFormProps) {
+  const { t } = useI18n()
   const [mode, setMode] = useState<Mode>('reallocate')
   const [from, setFrom] = useState<CategoryId>('transport')
   const [to, setTo] = useState<CategoryId>('food')
@@ -37,36 +45,35 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
   const [reduction, setReduction] = useState(String(plan.reductionPercent))
   const [reason, setReason] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<Message | null>(null)
+  const text = (value?: Message) => (value ? t(value.key, value.params) : '')
 
   const budgetKg = getBudgetKg(plan)
   const available = plan.allocation[from]
   const points = Number(amount)
-  const previewKg =
-    Number.isInteger(points) && points > 0
-      ? roundKg((budgetKg * points) / 100)
-      : 0
+  const previewKg = Number.isInteger(points) && points > 0 ? roundKg((budgetKg * points) / 100) : 0
   const newReduction = Number(reduction)
   const newBudgetKg =
-    Number.isInteger(newReduction) &&
-    newReduction >= REDUCTION_LIMITS.min &&
-    newReduction <= REDUCTION_LIMITS.max
+    Number.isInteger(newReduction) && newReduction >= REDUCTION_LIMITS.min && newReduction <= REDUCTION_LIMITS.max
       ? roundKg(getBaselineKg(plan) * (1 - newReduction / 100))
       : null
 
   function validate(): FormErrors {
     const result: FormErrors = {}
     if (mode === 'reallocate') {
-      if (from === to) result.to = 'Choose a different category to move budget to.'
+      if (from === to) result.to = { key: 'goals.adjust.errors.sameCategory' }
       if (amount.trim() === '' || !Number.isInteger(points) || points < 1) {
-        result.amount = 'Enter a whole number of 1 or more.'
+        result.amount = { key: 'goals.adjust.errors.wholeNumber' }
       } else if (points > available) {
-        result.amount = `${getCategoryLabel(from)} only has ${available}% to give.`
+        result.amount = {
+          key: 'goals.adjust.errors.tooMuch',
+          params: { category: getCategoryLabel(from), percent: formatPercentValue(available) },
+        }
       }
     } else if (reduction.trim() === '' || newBudgetKg === null) {
-      result.reduction = `Enter a whole number from ${REDUCTION_LIMITS.min} to ${REDUCTION_LIMITS.max}.`
+      result.reduction = { key: 'goals.adjust.errors.goalRange', params: REDUCTION_LIMITS }
     } else if (newReduction === plan.reductionPercent) {
-      result.reduction = `Your goal is already ${plan.reductionPercent}%. Enter a different value.`
+      result.reduction = { key: 'goals.adjust.errors.sameGoal', params: { percent: formatPercentValue(plan.reductionPercent) } }
     }
     return result
   }
@@ -76,12 +83,8 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
     const nextErrors = validate()
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) {
-      setMessage('')
-      const firstInvalid = nextErrors.to
-        ? 'adjust-to'
-        : nextErrors.amount
-          ? 'adjust-amount'
-          : 'adjust-reduction'
+      setMessage(null)
+      const firstInvalid = nextErrors.to ? 'adjust-to' : nextErrors.amount ? 'adjust-amount' : 'adjust-reduction'
       document.getElementById(firstInvalid)?.focus()
       return
     }
@@ -89,23 +92,26 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
     const id = newId()
     const createdAt = new Date().toISOString()
     if (mode === 'reallocate') {
-      dispatch({
-        type: 'reallocate',
-        id,
-        createdAt,
-        from,
-        to,
-        percentPoints: points,
-        reason: reason.trim(),
+      dispatch({ type: 'reallocate', id, createdAt, from, to, percentPoints: points, reason: reason.trim() })
+      setMessage({
+        key: 'goals.adjust.moved',
+        params: {
+          percent: formatPercentValue(points),
+          kg: formatKg(previewKg),
+          from: getCategoryLabel(from),
+          to: getCategoryLabel(to),
+        },
       })
-      setMessage(
-        `Moved ${points}% (${formatKg(previewKg)}) from ${getCategoryLabel(from)} to ${getCategoryLabel(to)}.`,
-      )
     } else {
       dispatch({ type: 'changeGoal', id, createdAt, reductionPercent: newReduction, reason: reason.trim() })
-      setMessage(
-        `Goal changed from ${plan.reductionPercent}% to ${newReduction}%. Your monthly budget is now ${formatKg(newBudgetKg ?? budgetKg)}.`,
-      )
+      setMessage({
+        key: 'goals.adjust.goalChanged',
+        params: {
+          before: formatPercentValue(plan.reductionPercent),
+          after: formatPercentValue(newReduction),
+          kg: formatKg(newBudgetKg ?? budgetKg),
+        },
+      })
     }
     setReason('')
     onApplied(id)
@@ -114,19 +120,18 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
   function changeMode(next: Mode) {
     setMode(next)
     setErrors({})
-    setMessage('')
+    setMessage(null)
     if (next === 'goal') setReduction(String(plan.reductionPercent))
   }
 
+  const categoryOption = (id: CategoryId) =>
+    t('goals.adjust.option', { category: getCategoryLabel(id), percent: formatPercentValue(plan.allocation[id]) })
+
   return (
-    <Panel
-      id="goals-adjust-title"
-      title="Budget adjustment"
-      description="Plans change. Move budget to a category where you need more room, or change how much you want to cut overall."
-    >
+    <Panel id="goals-adjust-title" title={t('goals.adjust.title')} description={t('goals.adjust.description')}>
       <form className="goals-form" noValidate onSubmit={handleSubmit}>
         <fieldset className="goals-fieldset">
-          <legend className="goals-label">What do you want to change?</legend>
+          <legend className="goals-label">{t('goals.adjust.legend')}</legend>
           <div className="goals-choice-group">
             <label className="goals-choice">
               <input
@@ -135,27 +140,22 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
                 checked={mode === 'reallocate'}
                 onChange={() => changeMode('reallocate')}
               />
-              <span>Move between categories</span>
+              <span>{t('goals.adjust.reallocate')}</span>
             </label>
             <label className="goals-choice">
-              <input
-                type="radio"
-                name="adjust-mode"
-                checked={mode === 'goal'}
-                onChange={() => changeMode('goal')}
-              />
-              <span>Change my reduction goal</span>
+              <input type="radio" name="adjust-mode" checked={mode === 'goal'} onChange={() => changeMode('goal')} />
+              <span>{t('goals.adjust.goal')}</span>
             </label>
           </div>
         </fieldset>
 
         {mode === 'reallocate' ? (
           <>
-            <p className="goals-hint">Your total monthly budget stays at {formatKg(budgetKg)}.</p>
+            <p className="goals-hint">{t('goals.adjust.totalStays', { kg: formatKg(budgetKg) })}</p>
             <div className="goals-form__row">
               <div className="goals-field">
                 <label className="goals-label" htmlFor="adjust-from">
-                  Move from
+                  {t('goals.adjust.from')}
                 </label>
                 <select
                   id="adjust-from"
@@ -165,7 +165,7 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
                 >
                   {CATEGORIES.map((category) => (
                     <option key={category.id} value={category.id}>
-                      {category.label} ({plan.allocation[category.id]}%)
+                      {categoryOption(category.id)}
                     </option>
                   ))}
                 </select>
@@ -173,7 +173,7 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
 
               <div className="goals-field">
                 <label className="goals-label" htmlFor="adjust-to">
-                  Move to
+                  {t('goals.adjust.to')}
                 </label>
                 <select
                   id="adjust-to"
@@ -185,13 +185,13 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
                 >
                   {CATEGORIES.map((category) => (
                     <option key={category.id} value={category.id}>
-                      {category.label} ({plan.allocation[category.id]}%)
+                      {categoryOption(category.id)}
                     </option>
                   ))}
                 </select>
                 {errors.to && (
                   <p id="adjust-to-error" className="goals-error">
-                    {errors.to}
+                    {text(errors.to)}
                   </p>
                 )}
               </div>
@@ -199,7 +199,7 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
 
             <div className="goals-field">
               <label className="goals-label" htmlFor="adjust-amount">
-                Amount to move (percentage points)
+                {t('goals.adjust.amount')}
               </label>
               <input
                 id="adjust-amount"
@@ -209,19 +209,23 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
                 min={1}
                 max={available}
                 step={1}
+                required
                 value={amount}
                 aria-invalid={errors.amount ? true : undefined}
                 aria-describedby={`adjust-amount-hint${errors.amount ? ' adjust-amount-error' : ''}`}
                 onChange={(event) => setAmount(event.target.value)}
               />
               <p id="adjust-amount-hint" className="goals-hint">
-                {previewKg > 0 ? `About ${formatKg(previewKg)} a month at your final budget. ` : ''}
-                {getCategoryLabel(from)} has {available}% (
-                {formatKg(shareToKg(budgetKg, plan.allocation, from))}) available.
+                {previewKg > 0 ? `${t('goals.adjust.amountPreview', { kg: formatKg(previewKg) })} ` : ''}
+                {t('goals.adjust.available', {
+                  category: getCategoryLabel(from),
+                  percent: formatPercentValue(available),
+                  kg: formatKg(shareToKg(budgetKg, plan.allocation, from)),
+                })}
               </p>
               {errors.amount && (
                 <p id="adjust-amount-error" className="goals-error">
-                  {errors.amount}
+                  {text(errors.amount)}
                 </p>
               )}
             </div>
@@ -229,7 +233,7 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
         ) : (
           <div className="goals-field">
             <label className="goals-label" htmlFor="adjust-reduction">
-              New reduction goal (%)
+              {t('goals.adjust.newGoal')}
             </label>
             <input
               id="adjust-reduction"
@@ -239,21 +243,22 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
               min={REDUCTION_LIMITS.min}
               max={REDUCTION_LIMITS.max}
               step={1}
+              required
               value={reduction}
               aria-invalid={errors.reduction ? true : undefined}
               aria-describedby={`adjust-reduction-hint${errors.reduction ? ' adjust-reduction-error' : ''}`}
               onChange={(event) => setReduction(event.target.value)}
             />
             <p id="adjust-reduction-hint" className="goals-hint">
-              Now {plan.reductionPercent}% ({formatKg(budgetKg)} a month).
+              {t('goals.adjust.goalNow', { percent: formatPercentValue(plan.reductionPercent), kg: formatKg(budgetKg) })}
               {newBudgetKg !== null && newReduction !== plan.reductionPercent
-                ? ` At ${newReduction}% your budget would be ${formatKg(newBudgetKg)} a month.`
+                ? ` ${t('goals.adjust.goalPreview', { percent: formatPercentValue(newReduction), kg: formatKg(newBudgetKg) })}`
                 : ''}{' '}
-              Category shares stay the same.
+              {t('goals.adjust.sharesStay')}
             </p>
             {errors.reduction && (
               <p id="adjust-reduction-error" className="goals-error">
-                {errors.reduction}
+                {text(errors.reduction)}
               </p>
             )}
           </div>
@@ -261,7 +266,7 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
 
         <div className="goals-field">
           <label className="goals-label" htmlFor="adjust-reason">
-            Reason <span className="goals-optional">(optional)</span>
+            {t('goals.adjust.reason')} <span className="goals-optional">{t('actions.optional')}</span>
           </label>
           <textarea
             id="adjust-reason"
@@ -274,10 +279,10 @@ export function BudgetAdjustmentForm({ plan, dispatch, onApplied }: BudgetAdjust
         </div>
 
         <div className="goals-actions">
-          <Button type="submit">Apply adjustment</Button>
+          <Button type="submit">{t('goals.adjust.apply')}</Button>
         </div>
         <p className="goals-success" role="status">
-          {message}
+          {text(message ?? undefined)}
         </p>
       </form>
     </Panel>
