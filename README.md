@@ -927,4 +927,4 @@ External data: place search by [Nominatim](https://nominatim.org/) and routes by
 
 Emission factors, costs and speeds in `src/features/tracking/emissionFactors.ts` and `src/features/compare/transportOptions.ts` are illustrative values written for this project, not copied from a dataset.
 
-AI assistance (Claude Code) was used during development; the declaration is in the Deliverable 2 report, Part B §12.
+AI assistance (Claude Code) was used by all three members to generate application code, and to draft and format the documentation from the team's instructions; the declaration is in the Deliverable 2 report, Part B §12.
