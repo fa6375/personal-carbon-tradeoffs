@@ -1,3 +1,4 @@
+
 import { useRef, useState } from 'react'
 import { Button } from '../components/Button'
 import { PageHeader } from '../components/PageHeader'
@@ -54,7 +55,8 @@ export function TrackingPage() {
   function go(next: TrackingView, announce: string | null = null) {
     setView(next)
     setMessage(announce)
-    // Move focus to the new screen so keyboard and screen reader users start there.
+
+    // Move focus to the new screen for keyboard and screen reader users.
     requestAnimationFrame(() => {
       viewRef.current?.focus()
       viewRef.current?.scrollIntoView({ block: 'start' })
@@ -72,6 +74,7 @@ export function TrackingPage() {
       : undefined
 
   const tabView = TABS.some((tab) => tab.name === view.name) ? view.name : null
+
   const back: { label: string; to: TrackingView } | null =
     view.name === 'add'
       ? { label: 'Back to dashboard', to: { name: 'dashboard' } }
@@ -85,15 +88,21 @@ export function TrackingPage() {
 
   function renderView() {
     if (status === 'loading') return <LoadingState />
-    if (status === 'error') return <ErrorState message={error ?? ''} onRetry={reload} />
+    if (status === 'error') {
+      return <ErrorState message={error ?? ''} onRetry={reload} />
+    }
 
     const noActivities = activities.length === 0
+
     switch (view.name) {
       case 'dashboard':
       case 'history':
       case 'breakdown':
-        if (noActivities) return <NoActivities onAdd={() => go({ name: 'add' })} />
-        if (view.name === 'dashboard')
+        if (noActivities) {
+          return <NoActivities onAdd={() => go({ name: 'add' })} />
+        }
+
+        if (view.name === 'dashboard') {
           return (
             <TrackingDashboard
               activities={activities}
@@ -102,11 +111,26 @@ export function TrackingPage() {
               onBreakdown={() => go({ name: 'breakdown' })}
             />
           )
-        if (view.name === 'history')
-          return <ActivityHistory activities={activities} onOpen={(id) => go({ name: 'details', id })} />
+        }
+
+        if (view.name === 'history') {
+          return (
+            <ActivityHistory
+              activities={activities}
+              onOpen={(id) => go({ name: 'details', id })}
+            />
+          )
+        }
+
         return <EmissionsBreakdown activities={activities} />
+
       case 'add':
-        return <AddActivity onChoose={(category) => go({ name: 'entry', category })} />
+        return (
+          <AddActivity
+            onChoose={(category) => go({ name: 'entry', category })}
+          />
+        )
+
       case 'entry':
         return (
           <ActivityEntry
@@ -115,9 +139,14 @@ export function TrackingPage() {
             onCancel={() => go({ name: 'add' })}
           />
         )
+
       case 'details':
-        if (!current)
-          return <ErrorState message="This activity could not be found. It may have been deleted." />
+        if (!current) {
+          return (
+            <ErrorState message="This activity could not be found. It may have been deleted." />
+          )
+        }
+
         return (
           <ActivityDetails
             activity={current}
@@ -128,9 +157,14 @@ export function TrackingPage() {
             }}
           />
         )
+
       case 'edit':
-        if (!current)
-          return <ErrorState message="This activity could not be found. It may have been deleted." />
+        if (!current) {
+          return (
+            <ErrorState message="This activity could not be found. It may have been deleted." />
+          )
+        }
+
         return (
           <EditActivity
             activity={current}
@@ -169,11 +203,14 @@ export function TrackingPage() {
             ))}
           </ul>
         </nav>
-        {status === 'ready' && view.name !== 'add' && view.name !== 'entry' && (
-          <Button icon="plus" onClick={() => go({ name: 'add' })}>
-            Add activity
-          </Button>
-        )}
+
+        {status === 'ready' &&
+          view.name !== 'add' &&
+          view.name !== 'entry' && (
+            <Button icon="plus" onClick={() => go({ name: 'add' })}>
+              Add activity
+            </Button>
+          )}
       </div>
 
       <div className="visually-hidden" role="status" aria-live="polite">
@@ -186,15 +223,20 @@ export function TrackingPage() {
         aria-labelledby="tracking-view-title"
         tabIndex={-1}
       >
-        {back && <BackButton label={back.label} onClick={() => go(back.to)} />}
+        {back && (
+          <BackButton label={back.label} onClick={() => go(back.to)} />
+        )}
+
         <h2 id="tracking-view-title" className="tracking-view__title">
           {viewTitle(view)}
         </h2>
+
         {message && (
           <p className="tracking-flash" aria-hidden="true">
             {message}
           </p>
         )}
+
         {renderView()}
       </section>
     </div>

@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from 'react'
 import { activityRepository } from './activityRepository'
 import type { Activity, ActivityInput } from './types'
@@ -14,7 +15,9 @@ export interface ActivitiesState {
   remove: (id: string) => Promise<void>
 }
 
-/** Loads activities through the repository and keeps the list in sync after changes. */
+const STORAGE_KEY = 'carbon-choices.tracking.activities.v1'
+
+/** Loads activities and keeps the list in sync after changes. */
 export function useActivities(): ActivitiesState {
   const [status, setStatus] = useState<LoadStatus>('loading')
   const [activities, setActivities] = useState<Activity[]>([])
@@ -23,18 +26,25 @@ export function useActivities(): ActivitiesState {
 
   useEffect(() => {
     let cancelled = false
+
     activityRepository
       .list()
       .then((list) => {
         if (cancelled) return
         setActivities(list)
+        setError(null)
         setStatus('ready')
       })
       .catch((reason: unknown) => {
         if (cancelled) return
-        setError(reason instanceof Error ? reason.message : 'Activities could not be loaded.')
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : 'Activities could not be loaded.'
+        )
         setStatus('error')
       })
+
     return () => {
       cancelled = true
     }
@@ -46,6 +56,21 @@ export function useActivities(): ActivitiesState {
     setAttempt((count) => count + 1)
   }, [])
 
+  // Refresh tracking when activities change in another browser tab.
+  useEffect(() => {
+    function handleStorageChange(event: StorageEvent) {
+      if (event.key === STORAGE_KEY) {
+        reload()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [reload])
+
   const create = useCallback(async (input: ActivityInput) => {
     const created = await activityRepository.create(input)
     setActivities((list) => [...list, created])
@@ -54,13 +79,17 @@ export function useActivities(): ActivitiesState {
 
   const update = useCallback(async (id: string, input: ActivityInput) => {
     const updated = await activityRepository.update(id, input)
-    setActivities((list) => list.map((activity) => (activity.id === id ? updated : activity)))
+    setActivities((list) =>
+      list.map((activity) => (activity.id === id ? updated : activity))
+    )
     return updated
   }, [])
 
   const remove = useCallback(async (id: string) => {
     await activityRepository.remove(id)
-    setActivities((list) => list.filter((activity) => activity.id !== id))
+    setActivities((list) =>
+      list.filter((activity) => activity.id !== id)
+    )
   }, [])
 
   return { status, activities, error, reload, create, update, remove }
