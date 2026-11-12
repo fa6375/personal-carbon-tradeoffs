@@ -1,3 +1,4 @@
+Run at 2026-11-12T23:15Z on commit 799016b
 
 > personal-carbon-tradeoffs@0.0.0 test
 > vitest run
@@ -8,6 +9,7 @@
 
  Test Files  11 passed (11)
       Tests  166 passed (166)
-   Start at  23:42:37
-   Duration  2.38s (transform 964ms, setup 0ms, import 2.19s, tests 1.69s, environment 1.33s)
+   Start at  00:15:47
+   Duration  2.49s (transform 969ms, setup 0ms, import 2.30s, tests 1.77s, environment 1.47s)
 
+exit 0

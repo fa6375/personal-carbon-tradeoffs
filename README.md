@@ -780,15 +780,16 @@ The project targets **WCAG 2.2 level AA**, as required by the course brief.
 | Focus visible and reduced motion | `styles.test.ts` checks the 2 px `:focus-visible` outline, that no stylesheet removes it, and the `prefers-reduced-motion` rules | Pass |
 | Touch targets | Reviewed in CSS: buttons, links styled as buttons, tabs, steps and the menu button are at least 44 × 44 px | Pass (manual review) |
 | 320 px and long text | In the browser at 320 px, every page and the whole Compare flow in English, Croatian and German | No horizontal scrolling (wide tables scroll inside their own box) |
-| 200% zoom | Simulated with a 640 px wide viewport (a 1280 px window at 200%), all pages in English, Croatian and German | No horizontal scrolling or clipped text. Real browser zoom (⌘ + / Ctrl +) still to be confirmed by a team member |
+| 200% zoom | Simulated with a 640 px wide viewport (a 1280 px window at 200%), all pages in English, Croatian and German; real browser zoom (⌘ + / Ctrl +) checked manually by the team | No horizontal scrolling or clipped text. The manual zoom check passed (team confirmation, 2026-11-13) |
+| Reduced motion | `prefers-reduced-motion` rules checked in `styles.test.ts`; the operating-system setting checked manually by the team | Pass (team confirmation, 2026-11-13) |
+| Screen reader | VoiceOver on macOS, checked manually by the team | Pass (team confirmation, 2026-11-13). Detailed per-step observations were not recorded |
 | Keyboard-only task | In a real browser, the whole Compare journey was completed using only Tab, Space, the arrow keys and Enter; the delete dialog was opened and closed with Enter and Esc | Pass: the 2 px focus outline was visible on every control; focus returned to the Delete button after Esc |
 
 ### Known accessibility limitations
 
-- The ten-minute accessibility check (brief Section 7.3) is recorded in the Deliverable 2 report (`docs/Team02_UX_Deliverable2.pdf`, Part B §7). Checks 1–8 and 10 were performed in a real browser on 2026-11-12. **Check 9, the screen reader walkthrough, is pending** until a team member completes it with VoiceOver or NVDA.
+- The ten-minute accessibility check (brief Section 7.3) is recorded in the Deliverable 2 report (`docs/Team02_UX_Deliverable2.pdf`, Part B §7). Checks 1–8 and 10 were performed in a real browser on 2026-11-12. Check 9 (VoiceOver), real 200% browser zoom and the operating-system reduced-motion setting were checked manually by the team; their detailed observations were not written down, so the report records them as passed on the team's confirmation.
+- Only VoiceOver on macOS was used; NVDA, JAWS and mobile screen readers were not tested.
 - Colour contrast was measured with axe-core in the browser, not with a separate colour-picker tool on disabled and placeholder states.
-- 200% zoom was simulated with a 640 px viewport; real browser zoom has not been confirmed on every page.
-- `prefers-reduced-motion` is handled in CSS (the spinners stop) but was only checked in the stylesheet, not with the operating-system setting turned on.
 - Component tests run in jsdom, which does not do layout; the `<dialog>` focus trap itself is provided by the browser and was not tested there.
 - The app has not had a full WCAG 2.2 AA audit, so it does not claim full conformance.
 
@@ -878,7 +879,7 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 | Database | ✅ Cloud Firestore with Security Rules, deployed to `personal-carbon-tradeoff` and verified with `npm run test:live` |
 | External REST API | ✅ OpenStreetMap Nominatim + OSRM for journey distances |
 | Internationalization (en, hr, de) | ✅ Whole interface, plurals, `Intl` formatting, saved language choice |
-| Accessibility | 🚧 Improvements and automated checks done (axe-core, keyboard, contrast, 320 px, simulated 200% zoom); screen reader walkthrough and the course's accessibility check still to do |
+| Accessibility | ✅ axe-core (0 violations in the browser), keyboard, contrast, 320 px, 200% zoom, reduced motion and a VoiceOver check; the ten-minute check is in Part B §7 |
 | Loading, empty, error and offline states | ✅ In every feature, with translated messages and retry |
 | Automated tests | ✅ Vitest unit, localization and component tests (jsdom) and emulator tests for rules and repositories; no end-to-end browser tests |
 
@@ -904,7 +905,7 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 - The production bundle is about 1.1 MB (325 kB gzipped), mainly the Firebase SDK and the messages for all three languages; it is not split by page or language yet.
 - The language choice is saved per browser and, when signed in, in the user's profile. Data that users type (notes, place names, comparison names) is shown as entered, not translated. OpenStreetMap place names come back in the browser's language (Nominatim uses the browser's `Accept-Language` header), not necessarily the language chosen in the app.
 - Localization uses a small custom module (`src/i18n`) instead of an established i18n library. This deviates from brief §2.1, which recommends a library, and the decision is explained in the report (Part B §6.2).
-- The Croatian and German translations were written for this project and have not yet been reviewed by a native speaker outside the team.
+- The Croatian and German translations were written for this project and checked by the team; no review by a native speaker outside the team has been recorded (issue #13).
 - Routing is hash-based (`#/compare`), so URLs contain a `#`.
 - There are component tests in jsdom but no end-to-end tests in a real browser; the screens were also checked by hand.
 - No dark mode.

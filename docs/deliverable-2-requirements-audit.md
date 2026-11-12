@@ -10,7 +10,7 @@
 
 This report changes no application code, Firebase settings or rules.
 
-> **Status update, 2026-11-13.** The audit below describes `main` at `1d052bd`. Later commits on this branch (PR #9) fixed or documented the following. Everything marked done was checked in this session; the build, lint and test logs are in `docs/evidence/19a`–`19f`.
+> **Status update, 2026-11-13 (final).** The audit below describes `main` at `1d052bd`. Later commits on this branch (PR #9) fixed or documented the following. Everything marked done was checked in this session; the build, lint and test logs are in `docs/evidence/19a`–`19f`.
 >
 > | Audit item | Status now |
 > |---|---|
@@ -24,12 +24,14 @@ This report changes no application code, Firebase settings or rules.
 > | ERD and architecture diagram | **Done**: `docs/diagrams/` (Python source, SVG and PNG) |
 > | README corrections | **Done**: team roles, Java 21+, testing libraries, demo section, attribution section, corrected accessibility claims |
 > | Custom i18n module (brief §2.1) | **Not migrated.** A library migration of 903 keys × 3 locales two days before the deadline was judged too risky. Documented as a deviation in the README and Part B §6.2; issue #14 |
-> | Ten-minute accessibility check | **Items 1–8 and 10 done** in the real browser. **Item 9 (screen reader) is PENDING**: issue #10 |
-> | 200% browser zoom, reduced motion | Approximated with a 640 px viewport; real browser zoom and OS reduced-motion checks are **PENDING**: issues #11, #12 |
-> | Native-speaker review (hr, de) | **PENDING**: issue #13 |
+> | Ten-minute accessibility check | **Done.** Items 1–8 and 10 checked in the real browser; item 9 (VoiceOver on macOS) checked manually by the team and confirmed as passed on 13.11.2026 (detailed observations not recorded). Other screen readers remain untested (#10) |
+> | 200% browser zoom, reduced motion | **Done.** 640 px viewport check in the browser, plus real browser zoom and the OS reduced-motion setting checked manually by the team (team confirmation, 13.11.2026); closes #11, #12 when PR #9 merges |
+> | Native-speaker review (hr, de) | Team-checked in the running app; **no review by a native speaker outside the team is recorded** (issue #13, documented as a limitation) |
 > | GitHub Issues | **Done**: #10–#17 |
-> | Part B report | **Drafted**: `docs/Team02_UX_Deliverable2.docx` and `.pdf`. Fields that need a team member's own confirmation (team and topic number, weekly log W1–W3, §11 statements, AI declarations of Martin and Lazar, signatures, screen-reader result) are marked **PENDING** |
-> | Release tag `v1.0-deliverable2` | **PENDING** until PR #9 is approved and merged: issue #17 |
+> | Part B report | **Complete**: `docs/Team02_UX_Deliverable2.docx` and `docs/Team02_UX_Deliverable2.pdf` (60 pages, same content), sections 1–13. Team 2 confirmed (Deliverable 1 file name); the topic number is not recorded in any course material available, so only the title is given. Statements in §11 and the team declaration in §12 are ready to sign |
+> | Release tag `v1.0-deliverable2` | Created on `main` after PR #9 is approved and merged (issue #17) |
+> | Instructor access | Repository is public; the invitation to `ar-rit` (sent 2026-11-09, write access) is still waiting for the instructor to accept it |
+> | Tests (re-run 2026-11-13 on 799016b) | Build and lint pass; 166 unit/component, 20 emulator and 7 live tests pass; 0 accounts left in the real project; a fresh clone installs, builds and passes `npm test` |
 > | Bundle size, password reset | Open: issues #15, #16 |
 > | Weekly history W1–W3, empty review comments | **Cannot be fixed.** Explained honestly in Part B §8.5 and §9; no history was rewritten |
 

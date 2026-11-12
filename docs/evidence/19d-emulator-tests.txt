@@ -1,3 +1,4 @@
+Run at 2026-11-12T23:15Z on commit 799016b
 
 > personal-carbon-tradeoffs@0.0.0 test:emulator
 > firebase emulators:exec --only auth,firestore --project demo-carbon-choices "vitest run --config vitest.emulator.config.ts"
@@ -14,8 +15,8 @@ i  Running script: vitest run --config vitest.emulator.config.ts
 
  Test Files  2 passed (2)
       Tests  20 passed (20)
-   Start at  23:42:48
-   Duration  2.68s (transform 141ms, setup 0ms, import 339ms, tests 2.19s, environment 0ms)
+   Start at  00:15:55
+   Duration  3.20s (transform 347ms, setup 0ms, import 612ms, tests 2.43s, environment 0ms)
 
 ✔  Script exited successfully (code 0)
 i  emulators: Shutting down emulators.
@@ -23,3 +24,4 @@ i  firestore: Stopping Firestore Emulator
 i  auth: Stopping Authentication Emulator
 i  hub: Stopping emulator hub
 i  logging: Stopping Logging Emulator
+exit 0
