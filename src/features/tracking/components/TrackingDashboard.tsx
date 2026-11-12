@@ -1,14 +1,9 @@
 import { Button } from '../../../components/Button'
-import { CATEGORIES, CATEGORY_LABELS, calculateEmissions, describeActivity } from '../emissionFactors'
+import { useI18n } from '../../../i18n'
+import { CATEGORIES, calculateEmissions } from '../emissionFactors'
 import { formatActivityCount, formatAmount, formatDay, formatKg, formatPercent } from '../format'
-import {
-  daysInPeriod,
-  inPeriod,
-  largestCategory,
-  sortNewestFirst,
-  totalKg,
-  totalsByCategory,
-} from '../stats'
+import { categoryLabel, describeActivityLocalized } from '../labels'
+import { daysInPeriod, inPeriod, largestCategory, sortNewestFirst, totalKg, totalsByCategory } from '../stats'
 import type { Activity } from '../types'
 import { CategoryTag, EstimateNotice, Panel, ShareBar, StatTile } from './TrackingUi'
 
@@ -20,12 +15,8 @@ interface TrackingDashboardProps {
 }
 
 /** Screen 1 — Carbon Tracking Dashboard. */
-export function TrackingDashboard({
-  activities,
-  onOpen,
-  onHistory,
-  onBreakdown,
-}: TrackingDashboardProps) {
+export function TrackingDashboard({ activities, onOpen, onHistory, onBreakdown }: TrackingDashboardProps) {
+  const { t } = useI18n()
   const thisMonth = activities.filter((activity) => inPeriod(activity, 'month'))
   const lastWeek = activities.filter((activity) => inPeriod(activity, '7d'))
   const monthTotal = totalKg(thisMonth)
@@ -36,26 +27,31 @@ export function TrackingDashboard({
 
   return (
     <div className="tracking-grid">
-      <Panel
-        id="tracking-overview-title"
-        title="This month at a glance"
-      >
+      <Panel id="tracking-overview-title" title={t('tracking.dashboard.overviewTitle')}>
         <dl className="tracking-stats">
           <StatTile
-            label="Emissions this month"
+            label={t('tracking.dashboard.monthTotal')}
             value={formatKg(monthTotal)}
             hint={formatActivityCount(thisMonth.length)}
           />
-          <StatTile label="Daily average" value={formatKg(dailyAverage)} hint="This month so far" />
           <StatTile
-            label="Last 7 days"
+            label={t('tracking.dashboard.dailyAverage')}
+            value={formatKg(dailyAverage)}
+            hint={t('tracking.dashboard.soFar')}
+          />
+          <StatTile
+            label={t('tracking.dashboard.lastWeek')}
             value={formatKg(totalKg(lastWeek))}
             hint={formatActivityCount(lastWeek.length)}
           />
           <StatTile
-            label="Largest source"
-            value={top ? CATEGORY_LABELS[top] : '—'}
-            hint={top ? formatPercent(monthByCategory[top] / monthTotal) + ' of this month' : 'Nothing this month yet'}
+            label={t('tracking.dashboard.largest')}
+            value={top ? categoryLabel(top) : '—'}
+            hint={
+              top
+                ? t('tracking.dashboard.ofMonth', { percent: formatPercent(monthByCategory[top] / monthTotal) })
+                : t('tracking.dashboard.nothingYet')
+            }
           />
         </dl>
         <EstimateNotice />
@@ -63,10 +59,10 @@ export function TrackingDashboard({
 
       <Panel
         id="tracking-month-categories-title"
-        title="This month by category"
+        title={t('tracking.dashboard.byCategory')}
         actions={
           <Button variant="secondary" icon="chart" onClick={onBreakdown}>
-            Full breakdown
+            {t('tracking.dashboard.fullBreakdown')}
           </Button>
         }
       >
@@ -76,49 +72,40 @@ export function TrackingDashboard({
               <ShareBar
                 key={category}
                 category={category}
-                label={CATEGORY_LABELS[category]}
+                label={categoryLabel(category)}
                 share={monthByCategory[category] / monthTotal}
                 valueText={`${formatKg(monthByCategory[category])} (${formatPercent(monthByCategory[category] / monthTotal)})`}
               />
             ))}
           </div>
         ) : (
-          <p className="tracking-muted">
-            No emissions recorded this month yet. Activities from earlier months are in your
-            history.
-          </p>
+          <p className="tracking-muted">{t('tracking.dashboard.noneThisMonth')}</p>
         )}
       </Panel>
 
       <Panel
         id="tracking-recent-title"
-        title="Recent activities"
+        title={t('tracking.dashboard.recent')}
         actions={
           <Button variant="secondary" icon="list" onClick={onHistory}>
-            View history
+            {t('tracking.dashboard.viewHistory')}
           </Button>
         }
       >
         <ul className="tracking-list">
           {recent.map((activity) => (
             <li key={activity.id}>
-              <button
-                type="button"
-                className="tracking-row"
-                onClick={() => onOpen(activity.id)}
-              >
+              <button type="button" className="tracking-row" onClick={() => onOpen(activity.id)}>
                 <span className="tracking-row__main">
                   <span className="tracking-row__title">
-                    {describeActivity(activity.details)} · {formatAmount(activity.details)}
+                    {describeActivityLocalized(activity.details)} · {formatAmount(activity.details)}
                   </span>
                   <span className="tracking-row__meta">
                     <CategoryTag category={activity.details.category} />
                     <span>{formatDay(activity.date)}</span>
                   </span>
                 </span>
-                <span className="tracking-row__value">
-                  {formatKg(calculateEmissions(activity.details))}
-                </span>
+                <span className="tracking-row__value">{formatKg(calculateEmissions(activity.details))}</span>
               </button>
             </li>
           ))}

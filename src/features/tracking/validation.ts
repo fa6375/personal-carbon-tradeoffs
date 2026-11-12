@@ -1,4 +1,9 @@
-/** Form state and validation for the activity entry and edit screens. */
+/**
+ * Form state and validation for the activity entry and edit screens.
+ * Errors are translation keys with parameters (not text), so the form shows
+ * them in the current language even after the language changes.
+ */
+import type { MessageKey, MessageParams } from '../../i18n'
 import { today } from './format'
 import type {
   Activity,
@@ -25,7 +30,13 @@ export interface ActivityFormValues {
 }
 
 export type FieldName = keyof ActivityFormValues
-export type FormErrors = Partial<Record<FieldName, string>>
+export interface FieldError {
+  key: MessageKey
+  params?: MessageParams
+}
+export type FormErrors = Partial<Record<FieldName, FieldError>>
+
+type NumberField = 'distanceKm' | 'passengers' | 'servings' | 'kwh' | 'householdSize'
 
 export const NOTE_MAX = 120
 
@@ -74,43 +85,39 @@ export function parseDecimal(value: string): number {
 
 function checkNumber(
   value: string,
-  label: string,
+  field: NumberField,
   { min, max, integer = false }: { min: number; max: number; integer?: boolean },
-): string | undefined {
-  if (value.trim() === '') return `Enter ${label}.`
+): FieldError | undefined {
+  if (value.trim() === '') return { key: `tracking.validation.required.${field}` }
   const number = parseDecimal(value)
-  if (Number.isNaN(number)) return `${capitalise(label)} must be a number, for example 12.5.`
-  if (integer && !Number.isInteger(number)) return `${capitalise(label)} must be a whole number.`
-  if (number < min || number > max) return `${capitalise(label)} must be between ${min} and ${max}.`
+  if (Number.isNaN(number)) return { key: 'tracking.validation.notNumber', params: { example: integer ? 2 : 12.5 } }
+  if (integer && !Number.isInteger(number)) return { key: 'tracking.validation.notWhole' }
+  if (number < min || number > max) return { key: 'tracking.validation.outOfRange', params: { min, max } }
   return undefined
-}
-
-function capitalise(text: string) {
-  return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 export function validate(values: ActivityFormValues): FormErrors {
   const errors: FormErrors = {}
   if (!/^\d{4}-\d{2}-\d{2}$/.test(values.date)) {
-    errors.date = 'Enter the date of the activity.'
+    errors.date = { key: 'tracking.validation.dateRequired' }
   } else if (values.date > today()) {
-    errors.date = 'The date cannot be in the future.'
+    errors.date = { key: 'tracking.validation.dateFuture' }
   }
   if (values.note.length > NOTE_MAX) {
-    errors.note = `Keep the note to ${NOTE_MAX} characters or fewer.`
+    errors.note = { key: 'tracking.validation.noteTooLong', params: { max: NOTE_MAX } }
   }
   if (values.category === 'transport') {
-    errors.distanceKm = checkNumber(values.distanceKm, 'the distance', { min: 0.1, max: 20000 })
-    errors.passengers = checkNumber(values.passengers, 'the number of people', {
+    errors.distanceKm = checkNumber(values.distanceKm, 'distanceKm', { min: 0.1, max: 20000 })
+    errors.passengers = checkNumber(values.passengers, 'passengers', {
       min: 1,
       max: 9,
       integer: true,
     })
   } else if (values.category === 'food') {
-    errors.servings = checkNumber(values.servings, 'the number of servings', { min: 0.5, max: 20 })
+    errors.servings = checkNumber(values.servings, 'servings', { min: 0.5, max: 20 })
   } else {
-    errors.kwh = checkNumber(values.kwh, 'the energy used', { min: 0.1, max: 100000 })
-    errors.householdSize = checkNumber(values.householdSize, 'the household size', {
+    errors.kwh = checkNumber(values.kwh, 'kwh', { min: 0.1, max: 100000 })
+    errors.householdSize = checkNumber(values.householdSize, 'householdSize', {
       min: 1,
       max: 20,
       integer: true,

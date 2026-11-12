@@ -15,38 +15,41 @@ import {
   ErrorState,
   LoadingState,
 } from '../features/tracking/components/TrackingUi'
-import { CATEGORY_LABELS } from '../features/tracking/emissionFactors'
+import { categoryLabelLower } from '../features/tracking/labels'
 import type { ActivityInput, TrackingView } from '../features/tracking/types'
 import { useActivities } from '../features/tracking/useActivities'
 import '../features/tracking/tracking.css'
+import { t as translate, useI18n, type MessageKey } from '../i18n'
+import { dataErrorText } from '../lib/errorMessages'
 
-const TABS: { name: 'dashboard' | 'history' | 'breakdown'; label: string }[] = [
-  { name: 'dashboard', label: 'Dashboard' },
-  { name: 'history', label: 'History' },
-  { name: 'breakdown', label: 'Breakdown' },
+const TABS: { name: 'dashboard' | 'history' | 'breakdown'; labelKey: MessageKey }[] = [
+  { name: 'dashboard', labelKey: 'tracking.tabs.dashboard' },
+  { name: 'history', labelKey: 'tracking.tabs.history' },
+  { name: 'breakdown', labelKey: 'tracking.tabs.breakdown' },
 ]
 
 function viewTitle(view: TrackingView): string {
   switch (view.name) {
     case 'dashboard':
-      return 'Dashboard'
+      return translate('tracking.views.dashboard')
     case 'add':
-      return 'Add activity'
+      return translate('tracking.views.add')
     case 'entry':
-      return `New ${CATEGORY_LABELS[view.category].toLowerCase()} activity`
+      return translate('tracking.views.entry', { category: categoryLabelLower(view.category) })
     case 'history':
-      return 'Activity history'
+      return translate('tracking.views.history')
     case 'details':
-      return 'Activity details'
+      return translate('tracking.views.details')
     case 'edit':
-      return 'Edit activity'
+      return translate('tracking.views.edit')
     case 'breakdown':
-      return 'Emissions breakdown'
+      return translate('tracking.views.breakdown')
   }
 }
 
 /** Personal Carbon Tracking (Lazar Jovović). */
 export function TrackingPage() {
+  const { t } = useI18n()
   const { status, activities, error, reload, create, update, remove } = useActivities()
   const [view, setView] = useState<TrackingView>({ name: 'dashboard' })
   const [message, setMessage] = useState<string | null>(null)
@@ -65,7 +68,7 @@ export function TrackingPage() {
 
   async function handleCreate(input: ActivityInput) {
     const created = await create(input)
-    go({ name: 'details', id: created.id }, 'Activity saved.')
+    go({ name: 'details', id: created.id }, t('tracking.announce.saved'))
   }
 
   const current =
@@ -77,19 +80,19 @@ export function TrackingPage() {
 
   const back: { label: string; to: TrackingView } | null =
     view.name === 'add'
-      ? { label: 'Back to dashboard', to: { name: 'dashboard' } }
+      ? { label: t('tracking.back.dashboard'), to: { name: 'dashboard' } }
       : view.name === 'entry'
-        ? { label: 'Back to categories', to: { name: 'add' } }
+        ? { label: t('tracking.back.categories'), to: { name: 'add' } }
         : view.name === 'details'
-          ? { label: 'Back to history', to: { name: 'history' } }
+          ? { label: t('tracking.back.history'), to: { name: 'history' } }
           : view.name === 'edit'
-            ? { label: 'Back to details', to: { name: 'details', id: view.id } }
+            ? { label: t('tracking.back.details'), to: { name: 'details', id: view.id } }
             : null
 
   function renderView() {
     if (status === 'loading') return <LoadingState />
     if (status === 'error') {
-      return <ErrorState message={error ?? ''} onRetry={reload} />
+      return <ErrorState message={dataErrorText(error ?? 'unknown')} onRetry={reload} />
     }
 
     const noActivities = activities.length === 0
@@ -143,7 +146,7 @@ export function TrackingPage() {
       case 'details':
         if (!current) {
           return (
-            <ErrorState message="This activity could not be found. It may have been deleted." />
+            <ErrorState message={t('tracking.notFound')} />
           )
         }
 
@@ -153,7 +156,7 @@ export function TrackingPage() {
             onEdit={() => go({ name: 'edit', id: current.id })}
             onDelete={async () => {
               await remove(current.id)
-              go({ name: 'history' }, 'Activity deleted.')
+              go({ name: 'history' }, t('tracking.announce.deleted'))
             }}
           />
         )
@@ -161,7 +164,7 @@ export function TrackingPage() {
       case 'edit':
         if (!current) {
           return (
-            <ErrorState message="This activity could not be found. It may have been deleted." />
+            <ErrorState message={t('tracking.notFound')} />
           )
         }
 
@@ -170,7 +173,7 @@ export function TrackingPage() {
             activity={current}
             onSave={async (input) => {
               await update(current.id, input)
-              go({ name: 'details', id: current.id }, 'Changes saved.')
+              go({ name: 'details', id: current.id }, t('tracking.announce.changesSaved'))
             }}
             onCancel={() => go({ name: 'details', id: current.id })}
           />
@@ -181,13 +184,13 @@ export function TrackingPage() {
   return (
     <div className="tracking-page">
       <PageHeader
-        eyebrow="Carbon tracking"
-        title="Personal carbon tracking"
-        description="Record your everyday transport, food and home energy, and see where your emissions come from."
+        eyebrow={t('tracking.eyebrow')}
+        title={t('tracking.title')}
+        description={t('tracking.description')}
       />
 
       <div className="tracking-toolbar">
-        <nav aria-label="Carbon tracking sections">
+        <nav aria-label={t('tracking.sectionsLabel')}>
           <ul className="tracking-tabs">
             {TABS.map((tab) => (
               <li key={tab.name}>
@@ -197,7 +200,7 @@ export function TrackingPage() {
                   aria-current={tabView === tab.name ? 'page' : undefined}
                   onClick={() => go({ name: tab.name })}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               </li>
             ))}
@@ -208,7 +211,7 @@ export function TrackingPage() {
           view.name !== 'add' &&
           view.name !== 'entry' && (
             <Button icon="plus" onClick={() => go({ name: 'add' })}>
-              Add activity
+              {t('tracking.addActivity')}
             </Button>
           )}
       </div>

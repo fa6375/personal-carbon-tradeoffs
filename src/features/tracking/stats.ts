@@ -3,12 +3,8 @@ import { CATEGORIES, calculateEmissions, describeActivity } from './emissionFact
 import { parseLocalDate, toLocalDay } from './format'
 import type { Activity, ActivityCategory, PeriodId } from './types'
 
-export const PERIODS: { id: PeriodId; label: string }[] = [
-  { id: '7d', label: 'Last 7 days' },
-  { id: '30d', label: 'Last 30 days' },
-  { id: 'month', label: 'This month' },
-  { id: 'all', label: 'All time' },
-]
+/** Period ids; their names are translated as tracking.periods.<id>. */
+export const PERIODS: { id: PeriodId }[] = [{ id: '7d' }, { id: '30d' }, { id: 'month' }, { id: 'all' }]
 
 /** First day included in a period, as "YYYY-MM-DD", or null for all time. */
 export function periodStart(period: PeriodId, now = new Date()): string | null {
@@ -50,7 +46,10 @@ export function totalsByCategory(activities: Activity[]): Record<ActivityCategor
 
 export interface SourceTotal {
   category: ActivityCategory
+  /** English name (stable grouping key). Show sourceLabel(category, source) instead. */
   label: string
+  /** The mode, food or energy source id, for a translated name. */
+  source: string
   kg: number
   count: number
 }
@@ -61,7 +60,8 @@ export function totalsBySource(activities: Activity[]): SourceTotal[] {
   for (const activity of activities) {
     const label = describeActivity(activity.details)
     const key = `${activity.details.category}:${label}`
-    const entry = map.get(key) ?? { category: activity.details.category, label, kg: 0, count: 0 }
+    const source = sourceId(activity)
+    const entry = map.get(key) ?? { category: activity.details.category, label, source, kg: 0, count: 0 }
     entry.kg += calculateEmissions(activity.details)
     entry.count += 1
     map.set(key, entry)
@@ -87,4 +87,11 @@ export function largestCategory(
     null,
   )
   return best && totals[best] > 0 ? best : null
+}
+
+function sourceId(activity: Activity): string {
+  const details = activity.details
+  if (details.category === 'transport') return details.mode
+  if (details.category === 'food') return details.item
+  return details.source
 }

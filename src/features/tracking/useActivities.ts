@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { DataError } from '../../lib/dataErrors'
+import { DataError, type DataErrorCode } from '../../lib/dataErrors'
+import { dataErrorCode } from '../../lib/errorMessages'
 import { getFirebase } from '../../lib/firebase'
 import { useAuth } from '../auth/authContext'
 import { createFirestoreActivityRepository } from './firestoreActivityRepository'
@@ -10,7 +11,8 @@ export type LoadStatus = 'loading' | 'ready' | 'error'
 export interface ActivitiesState {
   status: LoadStatus
   activities: Activity[]
-  error: string | null
+  /** Error code; show it with dataErrorText() so it follows the language. */
+  error: DataErrorCode | null
   reload: () => void
   create: (input: ActivityInput) => Promise<Activity>
   update: (id: string, input: ActivityInput) => Promise<Activity>
@@ -25,7 +27,7 @@ interface Loaded {
   key: string
   status: 'ready' | 'error'
   activities: Activity[]
-  error: string | null
+  error: DataErrorCode | null
 }
 
 /**
@@ -51,7 +53,7 @@ export function useActivities(): ActivitiesState {
     // wrongly say "no activities", so it is not shown.
     let confirmed = false
     const timer = setTimeout(() => {
-      if (!confirmed) setLoaded({ key, status: 'error', activities: [], error: new DataError('unavailable').message })
+      if (!confirmed) setLoaded({ key, status: 'error', activities: [], error: 'unavailable' })
     }, FIRST_LOAD_TIMEOUT_MS)
     const unsubscribe = repository.subscribe(
       (activities, fromServer) => {
@@ -66,7 +68,7 @@ export function useActivities(): ActivitiesState {
           key,
           status: 'error',
           activities: previous?.key === key ? previous.activities : [],
-          error: error.message,
+          error: dataErrorCode(error),
         }))
       },
     )
@@ -92,7 +94,7 @@ export function useActivities(): ActivitiesState {
 
   if (!repository) {
     const code = getFirebase() ? 'not-signed-in' : 'not-configured'
-    return { status: 'error', activities: [], error: new DataError(code).message, reload, create, update, remove }
+    return { status: 'error', activities: [], error: code, reload, create, update, remove }
   }
 
   const current = loaded?.key === key ? loaded : null
