@@ -27,6 +27,7 @@ Carbon Choices is a mobile-first web application that helps people understand an
 - [Development Workflow](#development-workflow)
 - [Current Development Status](#current-development-status)
 - [Known Limitations](#known-limitations)
+- [Third-party libraries and attribution](#third-party-libraries-and-attribution)
 
 ---
 
@@ -222,11 +223,11 @@ The feature is at `#/tracking` ("Carbon tracking" in the navigation). It impleme
 
 ## Team Members
 
-| Name | GitHub | Feature area |
-|---|---|---|
-| Faraj Aliyev | [@fa6375](https://github.com/fa6375) | Compare Everyday Choices |
-| Martin Mudrinic | [@martinmudrinic](https://github.com/martinmudrinic) | Carbon Reduction Goals & Recommendations |
-| Lazar Jovovic | [@lj7829](https://github.com/lj7829) | Personal Carbon Tracking |
+| Name | GitHub | Feature area (Deliverable 1) | Main responsibility in the build |
+|---|---|---|---|
+| Faraj Aliyev | [@fa6375](https://github.com/fa6375) | Compare Everyday Choices | Frontend foundation, Compare feature, shared backend (Firebase Auth, Firestore, rules, CRUD), external API, integration |
+| Martin Mudrinić | [@martinmudrinic](https://github.com/martinmudrinic) | Carbon Reduction Goals & Recommendations | Goals feature, localization (en/hr/de), accessibility and shared UI states |
+| Lazar Jovović | [@lj7829](https://github.com/lj7829) | Personal Carbon Tracking | Tracking feature, documentation, final report and evidence collection |
 
 ---
 
@@ -267,6 +268,7 @@ Notes:
 | [Node.js](https://nodejs.org/) | `^20.19.0` or `>=22.12.0` (required by Vite 8) |
 | npm | Included with Node.js (developed with npm 10.8.2) |
 | Git | Any recent version |
+| Java (JDK) | 21 or newer — only for the Firebase emulators (`npm run demo`, `npm run test:emulator`); firebase-tools 15 refuses older Java |
 
 ---
 
@@ -371,7 +373,10 @@ personal-carbon-tradeoffs/
 │   ├── types/                 # Shared TypeScript types
 │   ├── App.tsx                # Chooses the page for the current route
 │   └── main.tsx               # Application entry point
+├── docs/                      # Deliverable 2 report (DOCX/PDF), requirements audit, diagrams/ (ERD, architecture), evidence/ (screenshots, test logs)
+├── scripts/                   # seed-demo.mjs + seedDemo.ts: demo data for the local emulators (npm run demo)
 ├── tests/emulator/            # Rules and repository tests that run against the Firebase emulators
+├── tests/live/                # Opt-in test against the real Firebase project (npm run test:live)
 ├── firestore.rules            # Cloud Firestore Security Rules
 ├── firestore.indexes.json     # Firestore indexes (none needed yet)
 ├── firebase.json              # Firebase CLI config: rules file and emulator ports
@@ -424,6 +429,8 @@ Copy `.env.example` to `.env.local` and fill in the Firebase web app config (see
 cp .env.example .env.local
 ```
 
+**Quickest way to see the app with data (no Firebase account needed):** run `npm run demo` (needs Java 21+). See [Demo / seed data](#database).
+
 Without `.env.local` the app still runs, but Carbon tracking, Carbon goals, Saved comparisons and Account show "Database not configured". To work without the real project, use the local emulators instead (see [Testing](#testing)).
 
 ### 4. Start the development server
@@ -462,6 +469,7 @@ npm run lint
 | `npm run lint` | `eslint .` | Lint all TypeScript and TSX files |
 | `npm test` | `vitest run` | Unit tests (no network, no Firebase) |
 | `npm run test:emulator` | `firebase emulators:exec … vitest run --config vitest.emulator.config.ts` | Starts the Auth and Firestore emulators, runs the rules and repository tests, stops the emulators (needs Java) |
+| `npm run demo` | `firebase emulators:exec --ui … "node scripts/seed-demo.mjs && vite --mode emulator"` | **Reviewer demo**: starts the local emulators, loads realistic demo data, prints a demo sign-in and starts the app (Java 21+) |
 | `npm run emulators` | `firebase emulators:start --only auth,firestore …` | Runs the emulators for manual testing with `VITE_FIREBASE_USE_EMULATOR=true` |
 | `npm run test:live` | `vitest run --config vitest.live.config.ts` | 7 tests against the **real** project from `.env.local`: creates two throw-away accounts, checks Auth, CRUD for all three features and the deployed rules, then deletes everything it created |
 | `npm run deploy:rules` | `firebase deploy --only firestore:rules --project personal-carbon-tradeoff` | Publishes **only** `firestore.rules` to the real project's `(default)` database (needs `npx firebase login` first) |
@@ -547,7 +555,7 @@ users/{uid}/goalPlans/current                 Carbon Reduction Goals (the user's
 
 | Document | Fields |
 |---|---|
-| `users/{uid}` | `email`, `createdAt`, `updatedAt`. Created the first time the user signs in. |
+| `users/{uid}` | `email`, optional `locale` (`en`, `hr` or `de` — the user's language), `createdAt`, `updatedAt`. Created the first time the user signs in. |
 | `activities/{id}` | `date` (`"YYYY-MM-DD"`, the user's local day), `note` (≤ 120 characters), `details` (one of: `{category: "transport", mode, distanceKm, passengers}`, `{category: "food", item, servings}`, `{category: "home", source, kwh, householdSize}`), `createdAt`, `updatedAt`, optional `importedFrom: "localStorage"` |
 | `comparisons/{id}` | `name`, `input` (`modes`, `journey` {`from`, `to`, `distanceKm`, `passengers`}, `priorities` {`emissions`, `cost`, `time`} 0–3), `options` (snapshot of each option's `emissionsKg`, `costEur`, `timeMinutes`, `overallScore`), `recommended`, `createdAt`, `updatedAt`, optional `importedFrom` |
 | `goalPlans/current` | `baseline` {`source`, `amounts` per category, optional `takenAt`}, `reductionPercent`, `durationMonths`, `startMonth` (`"YYYY-MM"`), `allocation` (percent per category), `priorities` (ordered), `selectedOpportunityIds`, `adjustments` (history, newest first), `schemaVersion` (1), `createdAt`, `updatedAt` |
@@ -563,7 +571,13 @@ Why this structure:
 
 **Data access** is in one repository per feature. Reads use the server (`getDocFromServer`/`getDocsFromServer`), and Tracking's live listener ignores cache-only snapshots until the server has answered once. This way an offline device shows "The database cannot be reached" with **Try again** instead of a misleading empty list. Every call has a timeout (15 s), after which a `timeout` error is shown.
 
-**Demo data:** there is no shared seed script, because data is private to each account. To try the app, create an account and add a few activities, or import data saved in the browser (see below). The emulator tests create realistic test data, including Croatian place names.
+**Demo / seed data.** Data in the real project is private to each account, so demo data is loaded into the **local Firebase emulators**, never into the real project:
+
+```bash
+npm run demo
+```
+
+This starts the Auth and Firestore emulators (with the Emulator UI at <http://127.0.0.1:4000>), runs `scripts/seed-demo.mjs`, and starts the app in emulator mode. Open the address Vite prints (usually <http://localhost:5173>), then sign in on the **Account** page with the email and password printed in the terminal. The account `demo@carbon-choices.test` gets 25 activities over the last month (transport, food, home energy, notes in English and Croatian), 2 saved comparisons and a 6-month carbon plan with one budget adjustment. The data is fictional, and no real person is involved. The password is generated at random each time, or you can set `DEMO_PASSWORD`. Nothing is written to `personal-carbon-tradeoff`: the seed script refuses to run unless the emulators are running, and in emulator mode the app ignores the real project settings. Emulator data is deleted when the command stops. `scripts/seedDemo.ts` uses the app's own repositories and calculations, so the demo data always matches the schema and the rules.
 
 ---
 
@@ -680,7 +694,9 @@ Plural messages are objects with `Intl.PluralRules` categories, for example `{ o
 - The choice is saved in this browser's `localStorage` (`carbon-choices.locale`) and used on every later visit.
 - With no saved choice, the first supported browser language (`navigator.languages`, e.g. `hr-HR` → Croatian) is used; otherwise English.
 - `<html lang>` and the page title always follow the selected language, and the change is announced to screen readers in the new language.
-- The language is a device preference; it is not stored in the user's Firebase account.
+- **Signed in:** the language is also saved in the user's profile (`users/{uid}.locale`, `src/features/account/localePreference.ts`). On sign-in, a language saved in the profile is applied; a profile without one gets the language currently in use, so nothing the user chose is overwritten. Every later change in the selector is saved to the profile too, so the language follows the user to other devices. Signed-out visitors keep using the per-browser choice. If the profile cannot be reached, the per-browser choice still works.
+- Croatian month names are inflected where the sentence needs it (genitive: *do travnja 2027.*, *od studenoga 2026. do travnja 2027.*). `formatMonthGenitive()` in `src/features/goals/format.ts` takes the genitive form from `Intl.DateTimeFormat`. Sentences that would need the locative case were rephrased.
+- Lists sorted by text (for example sources with equal emissions on the Tracking breakdown) use `Intl.Collator` for the current language.
 
 ### Adding or changing translations
 
@@ -759,19 +775,21 @@ The project targets **WCAG 2.2 level AA**, as required by the course brief.
 | Check | How | Result |
 |---|---|---|
 | Automated rules | `axe-core` on 27 rendered screens (app shell, home, settings, not found, sign-in and registration, all Tracking forms and states, all ten Goals screens, all Compare screens) in `src/test/accessibility.test.tsx` | No violations (colour contrast is excluded there because jsdom cannot compute colours; see the next row) |
-| Contrast | `src/styles/styles.test.ts` computes WCAG contrast ratios from the design tokens and the warning/error colours | All text pairs ≥ 4.5:1; focus outline ≥ 3:1 against page and surface |
+| Contrast | `src/styles/styles.test.ts` computes WCAG contrast ratios from the design tokens. In addition, axe-core 4.14 was run **in a real browser** (Chrome) on every page and all five Goals steps on 2026-11-12 | The browser run first found one failure: the hint text in the highlighted Goals stat measured **4.34:1** (`#66726a` on `#e6f1ea`, 12 px). Fixed by using the muted text colour, which measures **6.06:1**. After the fix the browser run reports 0 violations |
 | Keyboard | Tests: skip link is the first focusable element and moves focus to the main content; the menu button has a name and `aria-expanded`, <kbd>Esc</kbd> closes the menu and returns focus; dialogs focus Cancel and cancel with <kbd>Esc</kbd>; the first invalid field receives focus | Pass |
 | Focus visible and reduced motion | `styles.test.ts` checks the 2 px `:focus-visible` outline, that no stylesheet removes it, and the `prefers-reduced-motion` rules | Pass |
 | Touch targets | Reviewed in CSS: buttons, links styled as buttons, tabs, steps and the menu button are at least 44 × 44 px | Pass (manual review) |
 | 320 px and long text | In the browser at 320 px, every page and the whole Compare flow in English, Croatian and German | No horizontal scrolling (wide tables scroll inside their own box) |
-| 200% zoom | Simulated with a 640 px wide viewport (a 1280 px window at 200%), main pages in German | No horizontal scrolling or clipped text |
+| 200% zoom | Simulated with a 640 px wide viewport (a 1280 px window at 200%), all pages in English, Croatian and German; real browser zoom (⌘ + / Ctrl +) checked manually by the team | No horizontal scrolling or clipped text. The manual zoom check passed (team confirmation, 2026-11-13) |
+| Reduced motion | `prefers-reduced-motion` rules checked in `styles.test.ts`; the operating-system setting checked manually by the team | Pass (team confirmation, 2026-11-13) |
+| Screen reader | VoiceOver on macOS, checked manually by the team | Pass (team confirmation, 2026-11-13). Detailed per-step observations were not recorded |
+| Keyboard-only task | In a real browser, the whole Compare journey was completed using only Tab, Space, the arrow keys and Enter; the delete dialog was opened and closed with Enter and Esc | Pass: the 2 px focus outline was visible on every control; focus returned to the Delete button after Esc |
 
 ### Known accessibility limitations
 
-- No screen reader walkthrough (NVDA, VoiceOver or TalkBack) has been recorded yet.
-- The course's ten-minute accessibility check (Section 7.3 of the brief) has not been performed and documented yet.
-- Colour contrast was computed for the design tokens and status colours, not measured on every rendered element with a browser tool.
-- 200% zoom was simulated with a narrow viewport, not tested with real browser zoom on every page.
+- The ten-minute accessibility check (brief Section 7.3) is recorded in the Deliverable 2 report (`docs/Team02_UX_Deliverable2.pdf`, Part B §7). Checks 1–8 and 10 were performed in a real browser on 2026-11-12. Check 9 (VoiceOver), real 200% browser zoom and the operating-system reduced-motion setting were checked manually by the team; their detailed observations were not written down, so the report records them as passed on the team's confirmation.
+- Only VoiceOver on macOS was used; NVDA, JAWS and mobile screen readers were not tested.
+- Colour contrast was measured with axe-core in the browser, not with a separate colour-picker tool on disabled and placeholder states.
 - Component tests run in jsdom, which does not do layout; the `<dialog>` focus trap itself is provided by the browser and was not tested there.
 - The app has not had a full WCAG 2.2 AA audit, so it does not claim full conformance.
 
@@ -781,8 +799,8 @@ The project targets **WCAG 2.2 level AA**, as required by the course brief.
 
 | Command | What it runs | Needs |
 |---|---|---|
-| `npm test` | 162 tests. Unit tests: the route service (success, empty result, malformed responses, network failure, timeout, HTTP 429/5xx/401/400, NoRoute, caching with expiry, throttling), data error mapping and timeouts, credential validation, shared emission factors in Compare and Tracking, and import ids. Localization: same keys and placeholders in all languages, Croatian plurals, `Intl` formatting, saved language and `<html lang>`. Component tests (jsdom): axe-core on 27 screens, every screen rendered in Croatian and German without missing keys, language switching, keyboard and dialog behaviour, loading/empty/error/offline states. CSS checks: focus outline, reduced motion, contrast | Nothing |
-| `npm run test:emulator` | 17 tests against the Auth and Firestore emulators with the real `firestore.rules`: 10 rules tests (owners can read and write their data; other users and signed-out visitors cannot read, list, write or delete; invalid activities, comparisons, plans and profiles are rejected; `createdAt` is fixed; saved comparisons cannot be edited) and 7 tests of the app's own auth service and repositories (register, profile document, sign out, wrong password, duplicate email, sign in; activity create/read/update/list/delete, persistence seen from a second client, live updates, access to another user's data refused; comparison save/list/get/delete; plan create/update/load/delete keeping `createdAt`; import twice without duplicates) | Java 21+ (firebase-tools 15 refuses older Java), and network access the first time to download the emulators |
+| `npm test` | 166 tests (11 files). Unit tests: the route service (success, empty result, malformed responses, network failure, timeout, HTTP 429/5xx/401/400, NoRoute, caching with expiry, throttling), data error mapping and timeouts, credential validation, shared emission factors in Compare and Tracking, and import ids. Localization: same keys and placeholders in all languages, Croatian plurals, `Intl` formatting, saved language and `<html lang>`. Component tests (jsdom): axe-core on 27 screens, every screen rendered in Croatian and German without missing keys, language switching, keyboard and dialog behaviour, loading/empty/error/offline states. CSS checks: focus outline, reduced motion, contrast | Nothing |
+| `npm run test:emulator` | 20 tests against the Auth and Firestore emulators with the real `firestore.rules`: 10 rules tests (owners can read and write their data; other users and signed-out visitors cannot read, list, write or delete; invalid activities, comparisons, plans and profiles are rejected; `createdAt` is fixed; saved comparisons cannot be edited) plus 1 for the profile `locale` field; and 9 tests of the app's own auth service and repositories, including Croatian, Cyrillic and Arabic text stored and read back, and the profile language preference (register, profile document, sign out, wrong password, duplicate email, sign in; activity create/read/update/list/delete, persistence seen from a second client, live updates, access to another user's data refused; comparison save/list/get/delete; plan create/update/load/delete keeping `createdAt`; import twice without duplicates) | Java 21+ (firebase-tools 15 refuses older Java), and network access the first time to download the emulators |
 
 The emulators use the demo project id `demo-carbon-choices`, so `npm test` and `npm run test:emulator` never touch the real database. Only `npm run test:live` uses the real project. It needs `.env.local`, creates two accounts named `carbon-choices-test-…@example.com`, and deletes them and all their records at the end. It does not read or change anyone else's data.
 
@@ -861,7 +879,7 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 | Database | ✅ Cloud Firestore with Security Rules, deployed to `personal-carbon-tradeoff` and verified with `npm run test:live` |
 | External REST API | ✅ OpenStreetMap Nominatim + OSRM for journey distances |
 | Internationalization (en, hr, de) | ✅ Whole interface, plurals, `Intl` formatting, saved language choice |
-| Accessibility | 🚧 Improvements and automated checks done (axe-core, keyboard, contrast, 320 px, simulated 200% zoom); screen reader walkthrough and the course's accessibility check still to do |
+| Accessibility | ✅ axe-core (0 violations in the browser), keyboard, contrast, 320 px, 200% zoom, reduced motion and a VoiceOver check; the ten-minute check is in Part B §7 |
 | Loading, empty, error and offline states | ✅ In every feature, with translated messages and retry |
 | Automated tests | ✅ Vitest unit, localization and component tests (jsdom) and emulator tests for rules and repositories; no end-to-end browser tests |
 
@@ -885,11 +903,28 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 - No email verification, password reset or account deletion in the app.
 - Offline use is limited: Firestore keeps its cache in memory only, so a page reload while offline shows "The database cannot be reached". Writes made while the connection drops are queued by Firestore, but the app reports a timeout after 15 s if the server has not confirmed them.
 - The production bundle is about 1.1 MB (325 kB gzipped), mainly the Firebase SDK and the messages for all three languages; it is not split by page or language yet.
-- The language choice is saved per browser, not in the user's account. Data that users type (notes, place names, comparison names) is shown as entered, not translated.
-- The Croatian and German translations were written for this project and have not yet been reviewed by a native speaker outside the team.
+- The language choice is saved per browser and, when signed in, in the user's profile. Data that users type (notes, place names, comparison names) is shown as entered, not translated. OpenStreetMap place names come back in the browser's language (Nominatim uses the browser's `Accept-Language` header), not necessarily the language chosen in the app.
+- Localization uses a small custom module (`src/i18n`) instead of an established i18n library. This deviates from brief §2.1, which recommends a library, and the decision is explained in the report (Part B §6.2).
+- The Croatian and German translations were written for this project and checked by the team; no review by a native speaker outside the team has been recorded (issue #13).
 - Routing is hash-based (`#/compare`), so URLs contain a `#`.
 - There are component tests in jsdom but no end-to-end tests in a real browser; the screens were also checked by hand.
 - No dark mode.
 - The font falls back to the system font; Inter is used only if it is already installed on the device.
-- The accessibility items listed under [Known accessibility limitations](#known-accessibility-limitations) have not been verified.
+- The accessibility items listed under [Known accessibility limitations](#known-accessibility-limitations) are still open.
 - No license file has been added to the repository.
+
+## Third-party libraries and attribution
+
+The application uses these open-source libraries; their licences are in `node_modules/<package>/LICENSE`:
+
+- [React](https://react.dev/) and React DOM (MIT): user interface.
+- [Firebase JavaScript SDK](https://firebase.google.com/docs/web/setup) (Apache-2.0): Authentication and Cloud Firestore.
+- [Vite](https://vite.dev/) and @vitejs/plugin-react (MIT): development server and build.
+- [TypeScript](https://www.typescriptlang.org/) (Apache-2.0), [ESLint](https://eslint.org/) and typescript-eslint (MIT): type checking and linting.
+- Testing: [Vitest](https://vitest.dev/) (MIT), [@firebase/rules-unit-testing](https://firebase.google.com/docs/rules/unit-tests) and [firebase-tools](https://github.com/firebase/firebase-tools) (Apache-2.0 / MIT), [jsdom](https://github.com/jsdom/jsdom) and [Testing Library](https://testing-library.com/) (MIT), [axe-core](https://github.com/dequelabs/axe-core) (MPL-2.0).
+
+External data: place search by [Nominatim](https://nominatim.org/) and routes by [OSRM](https://project-osrm.org/) on the FOSSGIS servers. Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the Open Database License; the app shows this credit wherever the data appears.
+
+Emission factors, costs and speeds in `src/features/tracking/emissionFactors.ts` and `src/features/compare/transportOptions.ts` are illustrative values written for this project, not copied from a dataset.
+
+AI assistance (Claude Code) was used during development; the declaration is in the Deliverable 2 report, Part B §12.

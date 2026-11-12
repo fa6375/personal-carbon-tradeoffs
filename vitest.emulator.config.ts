@@ -12,7 +12,7 @@ export default defineConfig({
     server: { deps: { inline: ['@firebase/rules-unit-testing'] } },
     env: {
       VITE_FIREBASE_USE_EMULATOR: 'true',
-      VITE_FIREBASE_PROJECT_ID: 'demo-carbon-choices',
+      VITE_FIREBASE_EMULATOR_PROJECT_ID: 'demo-carbon-choices',
     },
   },
 })

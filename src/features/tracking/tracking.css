@@ -58,6 +58,20 @@
   cursor: pointer;
 }
 
+/* Long labels (German "Aufschlüsselung") must not widen the page on narrow phones. */
+.tracking-tabs > li {
+  min-width: 0;
+}
+
+@media (max-width: 400px) {
+  .tracking-tabs__button {
+    padding: var(--space-2) 2px;
+    font-size: var(--text-xs);
+    hyphens: auto;
+    overflow-wrap: anywhere;
+  }
+}
+
 .tracking-tabs__button:hover {
   background: var(--color-surface-muted);
   color: var(--color-text);

@@ -169,4 +169,14 @@ describe('validation', () => {
       updateDoc(doc(db, 'users/alice'), { role: 'admin', updatedAt: serverTimestamp() }),
     )
   })
+
+  it('accepts a supported locale on the profile and rejects others', async () => {
+    const db = alice()
+    await assertSucceeds(
+      setDoc(doc(db, 'users/alice'), { email: 'ana@example.com', locale: 'hr', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }),
+    )
+    await assertSucceeds(updateDoc(doc(db, 'users/alice'), { locale: 'de', updatedAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(db, 'users/alice'), { locale: 'xx', updatedAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(bob(), 'users/alice'), { locale: 'en', updatedAt: serverTimestamp() }))
+  })
 })

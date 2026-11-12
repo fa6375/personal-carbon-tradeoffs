@@ -8,6 +8,7 @@ import { connectAuthEmulator, getAuth, signInWithEmailAndPassword, signOut as fb
 import { connectFirestoreEmulator, doc, getDoc, getFirestore, type Firestore } from 'firebase/firestore'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { importLocalData } from '../../src/features/account/localImport'
+import { readProfileLocale, saveProfileLocale } from '../../src/features/account/localePreference'
 import { AuthError, register, signIn, signOut } from '../../src/features/auth/authService'
 import { createFirestoreComparisonRepository } from '../../src/features/compare/firestoreComparisonRepository'
 import { calculateComparison } from '../../src/features/compare/calculate'
@@ -195,5 +196,44 @@ describe('import of browser data', () => {
     const list = await createFirestoreActivityRepository(db, user.uid).list()
     expect(list).toHaveLength(2)
     expect(list.find((a) => a.id === local[0].id)?.createdAt).toBe('2026-11-01T08:00:00.000Z')
+  })
+})
+
+describe('text in other scripts (UTF-8)', () => {
+  it('stores and reads back Croatian, Cyrillic and Arabic text', async () => {
+    const user = await register('script@example.com', 'lozinka123')
+    const db = getFirebase()!.db
+    const activities = createFirestoreActivityRepository(db, user.uid)
+    const notes = ['Čađavi šešir — Đakovo, Žminj', 'Поездка на трамвае в Москве', 'رحلة بالحافلة إلى الجامعة']
+    for (const note of notes) {
+      await activities.create({ ...bus, note })
+    }
+    // Read back through a second client, i.e. from the database, not a local cache.
+    const other = await otherClient('script@example.com', 'lozinka123')
+    const stored = (await createFirestoreActivityRepository(other.db, other.uid).list()).map((a) => a.note).sort()
+    expect(stored).toEqual([...notes].sort())
+
+    const comparisons = createFirestoreComparisonRepository(db, user.uid)
+    const result = calculateComparison({
+      modes: ['bus', 'train'],
+      journey: { from: 'Москва', to: 'دبي', distanceKm: 12, passengers: 1 },
+      priorities: { emissions: 3, cost: 1, time: 1 },
+    })
+    const saved = await comparisons.create({ name: 'Путь — طريق', input: result.input, options: result.options, recommended: result.recommended })
+    const reread = await createFirestoreComparisonRepository(other.db, other.uid).get(saved.id)
+    expect(reread?.name).toBe('Путь — طريق')
+    expect(reread?.input.journey).toMatchObject({ from: 'Москва', to: 'دبي' })
+  })
+})
+
+describe('locale preference in the profile', () => {
+  it('saves the language with the profile and reads it back', async () => {
+    const user = await register('jezik@example.com', 'lozinka123')
+    const db = getFirebase()!.db
+    // New profiles get the language in use at registration (English in tests).
+    expect(await readProfileLocale(db, user.uid)).toBe('en')
+    await saveProfileLocale(db, user.uid, 'hr')
+    const other = await otherClient('jezik@example.com', 'lozinka123')
+    expect(await readProfileLocale(other.db, other.uid)).toBe('hr')
   })
 })

@@ -27,6 +27,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# Only switches the app to the local emulators (npm run demo); contains no secrets.
+!.env.emulator
 
 # Firebase emulator and CLI files
 .firebase/

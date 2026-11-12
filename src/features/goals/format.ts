@@ -1,5 +1,5 @@
 /** Display formatting for the Goals feature, in the current language (src/i18n). */
-import { format } from '../../i18n'
+import { format, getLocale } from '../../i18n'
 
 /** Same precision as Personal Carbon Tracking, so the two features show the same figures. */
 export function formatKg(kg: number): string {
@@ -15,6 +15,23 @@ export function formatPercentValue(percent: number): string {
 export function formatMonth(yearMonth: string, offset = 0): string {
   const [year, month] = yearMonth.split('-').map(Number)
   return format().month(new Date(year, month - 1 + offset, 1))
+}
+
+/**
+ * A month for use after a preposition that needs the genitive ("do travnja
+ * 2027.", "od studenoga 2026."). Croatian month names change form; Intl gives
+ * the genitive when the day is part of the date, so the month is taken from
+ * there. English and German use the same form as formatMonth.
+ */
+export function formatMonthGenitive(yearMonth: string, offset = 0): string {
+  if (getLocale() !== 'hr') return formatMonth(yearMonth, offset)
+  const [year, month] = yearMonth.split('-').map(Number)
+  const parts = new Intl.DateTimeFormat('hr', { day: 'numeric', month: 'long', year: 'numeric' }).formatToParts(
+    new Date(year, month - 1 + offset, 1),
+  )
+  const name = parts.find((part) => part.type === 'month')?.value
+  const yearText = parts.find((part) => part.type === 'year')?.value
+  return name && yearText ? `${name} ${yearText}.` : formatMonth(yearMonth, offset)
 }
 
 export function formatDateTime(iso: string): string {

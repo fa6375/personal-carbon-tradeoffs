@@ -1,6 +1,6 @@
 import { useI18n } from '../../../i18n'
 import { getBaselineKg, getBudgetKg, getMonthlyTargets, roundKg } from '../budget'
-import { formatDateTime, formatKg, formatMonth, formatPercentValue } from '../format'
+import { formatDateTime, formatKg, formatMonth, formatMonthGenitive, formatPercentValue } from '../format'
 import { CATEGORIES } from '../sampleData'
 import type { GoalPlan } from '../types'
 import { Panel, ProgressBar, StatTile } from './GoalsUi'
@@ -18,7 +18,7 @@ export function PersonalBudget({ plan }: { plan: GoalPlan }) {
         <StatTile
           label={t('goals.budget.monthly')}
           value={formatKg(budgetKg)}
-          hint={t('goals.budget.from', { month: formatMonth(plan.startMonth, plan.durationMonths - 1) })}
+          hint={t('goals.budget.from', { month: formatMonthGenitive(plan.startMonth, plan.durationMonths - 1) })}
           highlight
         />
         <StatTile

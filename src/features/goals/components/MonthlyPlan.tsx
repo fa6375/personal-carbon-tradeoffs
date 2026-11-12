@@ -1,6 +1,6 @@
 import { useI18n } from '../../../i18n'
 import { getBaselineKg, getMonthlyTargets, getPlanMonth, splitKg } from '../budget'
-import { formatKg, formatMonth, formatPercentValue } from '../format'
+import { formatKg, formatMonth, formatMonthGenitive, formatPercentValue } from '../format'
 import { CATEGORIES } from '../sampleData'
 import type { GoalPlan } from '../types'
 import { Panel, ProgressBar } from './GoalsUi'
@@ -26,7 +26,7 @@ export function MonthlyPlan({ plan, currentMonth }: MonthlyPlanProps) {
       description={t('goals.monthly.description', {
         baseline: formatKg(baselineKg),
         budget: formatKg(targets[targets.length - 1].targetKg),
-        month: lastMonth,
+        month: formatMonthGenitive(plan.startMonth, plan.durationMonths - 1),
       })}
     >
       {planMonth.timing === 'not-started' && (
@@ -39,7 +39,10 @@ export function MonthlyPlan({ plan, currentMonth }: MonthlyPlanProps) {
       <div className="goals-table-wrap">
         <table className="goals-table">
           <caption className="visually-hidden">
-            {t('goals.monthly.caption', { start: formatMonth(plan.startMonth), end: lastMonth })}
+            {t('goals.monthly.caption', {
+              start: formatMonthGenitive(plan.startMonth),
+              end: formatMonthGenitive(plan.startMonth, plan.durationMonths - 1),
+            })}
           </caption>
           <thead>
             <tr>

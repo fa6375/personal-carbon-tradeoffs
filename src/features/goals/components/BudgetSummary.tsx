@@ -13,7 +13,7 @@ import {
   splitKg,
   sumAmounts,
 } from '../budget'
-import { formatKg, formatMonth, formatPercentValue } from '../format'
+import { formatKg, formatMonth, formatMonthGenitive, formatPercentValue } from '../format'
 import type { GoalPlanAction } from '../goalPlanReducer'
 import { CATEGORIES, getPriority, OPPORTUNITIES } from '../sampleData'
 import type { GoalPlan, GoalsStageId } from '../types'
@@ -57,7 +57,7 @@ export function BudgetSummary({ plan, dispatch, onEdit, currentMonth }: BudgetSu
         <StatTile
           label={t('goals.budget.monthly')}
           value={formatKg(budgetKg)}
-          hint={t('goals.summary.byMonth', { month: formatMonth(plan.startMonth, plan.durationMonths - 1) })}
+          hint={t('goals.summary.byMonth', { month: formatMonthGenitive(plan.startMonth, plan.durationMonths - 1) })}
           highlight
         />
         <StatTile

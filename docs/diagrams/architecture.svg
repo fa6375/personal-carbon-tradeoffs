@@ -1,0 +1,111 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1400' height='1170' viewBox='0 0 1400 1170'>
+<defs><marker id='a' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'><path d='M0,0 L10,5 L0,10 z' fill='#38473e'/></marker></defs>
+<rect x='0' y='0' width='1400' height='1170' fill='#f6f8f6'/>
+<text x='30' y='42' font-family='Helvetica, Arial, sans-serif' font-size='26' font-weight='700' fill='#163d29' text-anchor='start'>Carbon Choices — system architecture</text>
+<text x='30' y='66' font-family='Helvetica, Arial, sans-serif' font-size='13.5' font-weight='400' fill='#4f5c54' text-anchor='start'>Static React single-page app; Firebase is the managed backend (no custom server). External REST data comes from OpenStreetMap services.</text>
+<rect x='470' y='90' width='460' height='70' rx='10' fill='#ffffff' stroke='#38473e' stroke-width='2'/>
+<text x='484' y='116' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#1b2a22' text-anchor='start'>User — browser on phone or desktop</text>
+<text x='484' y='140' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Any device; data follows the signed-in account</text>
+<rect x='30' y='200' width='900' height='760' rx='14' fill='#eef5f0' stroke='#1f6b45' stroke-width='2'/>
+<text x='48' y='230' font-family='Helvetica, Arial, sans-serif' font-size='17' font-weight='700' fill='#163d29' text-anchor='start'>React 19 + TypeScript 6 single-page application (built with Vite 8)</text>
+<text x='48' y='252' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#4f5c54' text-anchor='start'>src/  ·  served as static files  ·  hash routes #/, #/compare, #/saved, #/goals, #/tracking, #/account, #/settings</text>
+<rect x='50' y='270' width='860' height='70' rx='10' fill='#ffffff' stroke='#1f6b45' stroke-width='2'/>
+<text x='64' y='296' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#163d29' text-anchor='start'>App shell</text>
+<text x='64' y='320' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>AppLayout (skip link, sidebar / mobile menu, offline banner) · useHashRoute · RequireAuth gate on Tracking, Goals, Saved</text>
+<rect x='50' y='355' width='275' height='150' rx='10' fill='#ffffff' stroke='#8a5a14' stroke-width='2'/>
+<text x='64' y='381' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#163d29' text-anchor='start'>Compare Everyday Choices</text>
+<text x='64' y='405' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Faraj · src/features/compare</text>
+<text x='64' y='424' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>10 screens + Saved comparisons</text>
+<text x='64' y='443' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>calculate.ts: CO₂ / cost / time,</text>
+<text x='64' y='462' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>weighted recommendation</text>
+<rect x='342' y='355' width='275' height='150' rx='10' fill='#ffffff' stroke='#6b3fa0' stroke-width='2'/>
+<text x='356' y='381' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#163d29' text-anchor='start'>Carbon Reduction Goals</text>
+<text x='356' y='405' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Martin · src/features/goals</text>
+<text x='356' y='424' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>10 screens in 5 steps</text>
+<text x='356' y='443' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>budget.ts, goalPlanStore +</text>
+<text x='356' y='462' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>goalPlanSync (autosave)</text>
+<rect x='634' y='355' width='276' height='150' rx='10' fill='#ffffff' stroke='#2f5f8a' stroke-width='2'/>
+<text x='648' y='381' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#163d29' text-anchor='start'>Personal Carbon Tracking</text>
+<text x='648' y='405' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Lazar · src/features/tracking</text>
+<text x='648' y='424' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>10 screens</text>
+<text x='648' y='443' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>emissionFactors.ts (shared by all</text>
+<text x='648' y='462' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>three features), stats.ts</text>
+<rect x='50' y='520' width='420' height='165' rx='10' fill='#ffffff' stroke='#1f6b45' stroke-width='2'/>
+<text x='64' y='546' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#163d29' text-anchor='start'>Localization  (src/i18n)</text>
+<text x='64' y='570' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Typed messages en / hr / de (custom module, no library)</text>
+<text x='64' y='589' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Intl.PluralRules · NumberFormat · DateTimeFormat</text>
+<text x='64' y='608' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Intl.Collator for sorted names</text>
+<text x='64' y='627' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>&lt;html lang&gt; follows the language; choice saved in</text>
+<text x='64' y='646' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>localStorage and in users/{uid}.locale when signed in</text>
+<rect x='490' y='520' width='420' height='165' rx='10' fill='#ffffff' stroke='#1f6b45' stroke-width='2'/>
+<text x='504' y='546' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#163d29' text-anchor='start'>Auth + data layer</text>
+<text x='504' y='570' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>AuthProvider · sign-in / register · Account page</text>
+<text x='504' y='589' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Repositories: activities (live listener), comparisons,</text>
+<text x='504' y='608' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>goal plan · DataError codes · 15 s timeouts</text>
+<text x='504' y='627' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>src/lib/firebase.ts: single initialisation</text>
+<text x='504' y='646' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>→ Firebase Authentication and Cloud Firestore</text>
+<rect x='50' y='700' width='420' height='130' rx='10' fill='#ffffff' stroke='#1f6b45' stroke-width='2'/>
+<text x='64' y='726' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#163d29' text-anchor='start'>Data import and preferences</text>
+<text x='64' y='750' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>One-time import of data saved in the browser</text>
+<text x='64' y='769' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>before accounts existed (no duplicates)</text>
+<text x='64' y='788' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Locale preference sync on sign-in</text>
+<rect x='490' y='700' width='420' height='130' rx='10' fill='#ffffff' stroke='#1f6b45' stroke-width='2'/>
+<text x='504' y='726' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#163d29' text-anchor='start'>Route service  (src/features/routing)</text>
+<text x='504' y='750' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>10 s timeout · 1 request/s per host · 7-day cache</text>
+<text x='504' y='769' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>RouteError codes (429, 5xx, empty, malformed…)</text>
+<text x='504' y='788' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Lookup UI with OpenStreetMap attribution</text>
+<text x='504' y='807' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>→ Nominatim and OSRM</text>
+<rect x='50' y='845' width='860' height='100' rx='10' fill='#ffffff' stroke='#8f9a93' stroke-width='2' stroke-dasharray='7 5'/>
+<text x='64' y='871' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#33433a' text-anchor='start'>Browser storage (localStorage) — device conveniences only</text>
+<text x='64' y='895' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>carbon-choices.locale (language before sign-in) · carbon-choices.routes.v1:* (map lookup cache)</text>
+<text x='64' y='914' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>legacy tracking / compare keys — read once by the import, never written · Firebase Auth session (IndexedDB)</text>
+<rect x='980' y='200' width='390' height='470' rx='14' fill='#fff7e6' stroke='#c77700' stroke-width='2'/>
+<text x='998' y='230' font-family='Helvetica, Arial, sans-serif' font-size='17' font-weight='700' fill='#7a4a00' text-anchor='start'>Firebase (managed backend)</text>
+<text x='998' y='252' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#7a4a00' text-anchor='start'>project personal-carbon-tradeoff</text>
+<rect x='1000' y='270' width='350' height='100' rx='10' fill='#ffffff' stroke='#c77700' stroke-width='2'/>
+<text x='1014' y='296' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#7a4a00' text-anchor='start'>Firebase Authentication</text>
+<text x='1014' y='320' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Email / password</text>
+<text x='1014' y='339' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>uid identifies the owner of all data</text>
+<rect x='1000' y='390' width='350' height='80' rx='10' fill='#ffffff' stroke='#9b231a' stroke-width='2'/>
+<text x='1014' y='416' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#7f1c15' text-anchor='start'>Firestore Security Rules</text>
+<text x='1014' y='440' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>firestore.rules: request.auth.uid == uid,</text>
+<text x='1014' y='459' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>field and range validation</text>
+<rect x='1000' y='490' width='350' height='160' rx='10' fill='#ffffff' stroke='#c77700' stroke-width='2'/>
+<text x='1014' y='516' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#7a4a00' text-anchor='start'>Cloud Firestore — (default)</text>
+<text x='1014' y='540' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>users/{uid}</text>
+<text x='1014' y='559' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>  /activities/{id}</text>
+<text x='1014' y='578' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>  /comparisons/{id}</text>
+<text x='1014' y='597' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>  /goalPlans/current</text>
+<text x='1014' y='616' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>UTC server timestamps · UTF-8</text>
+<path d='M1175,470 V488' stroke='#38473e' stroke-width='2' fill='none' marker-end='url(#a)'/>
+<rect x='980' y='700' width='390' height='260' rx='14' fill='#e9f0f8' stroke='#2f5f8a' stroke-width='2'/>
+<text x='998' y='730' font-family='Helvetica, Arial, sans-serif' font-size='17' font-weight='700' fill='#1f4466' text-anchor='start'>External REST APIs (OpenStreetMap)</text>
+<rect x='1000' y='745' width='350' height='95' rx='10' fill='#ffffff' stroke='#2f5f8a' stroke-width='2'/>
+<text x='1014' y='771' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#1f4466' text-anchor='start'>Nominatim — geocoding</text>
+<text x='1014' y='795' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>GET nominatim.openstreetmap.org/search</text>
+<text x='1014' y='814' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>sends: typed place text · returns lat, lon, name</text>
+<rect x='1000' y='855' width='350' height='95' rx='10' fill='#ffffff' stroke='#2f5f8a' stroke-width='2'/>
+<text x='1014' y='881' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#1f4466' text-anchor='start'>OSRM (FOSSGIS) — routing</text>
+<text x='1014' y='905' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>GET routing.openstreetmap.de/routed-{car,bike,foot}</text>
+<text x='1014' y='924' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>sends: coordinates · returns distance, duration</text>
+<rect x='30' y='990' width='900' height='110' rx='10' fill='#ffffff' stroke='#6b7a70' stroke-width='2' stroke-dasharray='7 5'/>
+<text x='44' y='1016' font-family='Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#33433a' text-anchor='start'>Development and tests: Firebase Emulator Suite (local, project demo-carbon-choices)</text>
+<text x='44' y='1040' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>Auth :9099 · Firestore :8080 · UI :4000 — used by npm run demo (seeded demo data), npm run test:emulator (rules + repositories)</text>
+<text x='44' y='1059' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#33433a' text-anchor='start'>VITE_FIREBASE_USE_EMULATOR=true switches the same code to the emulators; real config is never used in emulator mode</text>
+<path d='M700,160 V198' stroke='#38473e' stroke-width='2' fill='none' marker-end='url(#a)'/>
+<text x='708' y='186' font-family='Helvetica, Arial, sans-serif' font-size='12' font-weight='400' fill='#38473e' text-anchor='start'>HTTPS (static app)</text>
+<path d='M910,600 H955 V320 H998' stroke='#38473e' stroke-width='2' fill='none' marker-end='url(#a)'/>
+<path d='M955,560 H998' stroke='#38473e' stroke-width='2' fill='none' marker-end='url(#a)'/>
+<path d='M910,765 H955 V792 H998' stroke='#38473e' stroke-width='2' fill='none' marker-end='url(#a)'/>
+<path d='M955,792 V900 H998' stroke='#38473e' stroke-width='2' fill='none' marker-end='url(#a)'/>
+<text x='964' y='312' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#38473e' text-anchor='start'>Auth</text>
+<text x='964' y='552' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#38473e' text-anchor='start'>data</text>
+<text x='964' y='784' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#38473e' text-anchor='start'>HTTP</text>
+<polygon points='700,199 694,188 706,188' fill='#38473e'/>
+<polygon points='1175,489 1169,478 1181,478' fill='#38473e'/>
+<polygon points='999,320 988,314 988,326' fill='#38473e'/>
+<polygon points='999,560 988,554 988,566' fill='#38473e'/>
+<polygon points='999,792 988,786 988,798' fill='#38473e'/>
+<polygon points='999,900 988,894 988,906' fill='#38473e'/>
+<text x='30' y='1140' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#4f5c54' text-anchor='start'>Notes: there is no custom backend server and no API key; access control is enforced by Firestore Security Rules. Figures (emission factors, cost, speed) are illustrative constants in the code.</text>
+</svg>

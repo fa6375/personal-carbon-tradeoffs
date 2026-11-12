@@ -48,8 +48,11 @@ export function getFirebase(): FirebaseServices | null {
   if (!isFirebaseConfigured) return null
   if (services) return services
 
+  // In emulator mode the real project's settings are never used, even if
+  // .env.local exists: only a "demo-" project id, which the emulators keep
+  // fully local, so emulator data can never be confused with real data.
   const options: FirebaseOptions = useEmulator
-    ? { ...config, apiKey: config.apiKey || 'demo-api-key', projectId: config.projectId || 'demo-carbon-choices' }
+    ? { apiKey: 'demo-api-key', projectId: env.VITE_FIREBASE_EMULATOR_PROJECT_ID || 'demo-carbon-choices' }
     : config
   const app = getApps().length ? getApp() : initializeApp(options)
   const auth = getAuth(app)

@@ -131,7 +131,7 @@ export const goals: MessageShape<typeof en> = {
       durationLegend: 'Vrijeme do cilja',
       months: { one: '{count} mjesec', few: '{count} mjeseca', other: '{count} mjeseci' },
       startMonth: 'Početni mjesec',
-      result: 'Smanjenje od {percent} u odnosu na {baseline} daje mjesečni proračun od {budget} do razdoblja {month}.',
+      result: 'Smanjenje od {percent} u odnosu na {baseline} daje mjesečni proračun od {budget} do {month}',
       sampleNotice: 'Početna vrijednost je primjer. Odaberite „Iz praćenja emisija” kada zabilježite aktivnosti.',
       trackedNotice: 'Temelji se na aktivnostima zabilježenima u zadnjih 30 dana, uz okvirne emisijske faktore iz praćenja emisija.',
     },
@@ -139,7 +139,7 @@ export const goals: MessageShape<typeof en> = {
       title: 'Vaš osobni proračun emisija',
       description: 'Mjesečna količina emisija unutar koje želite ostati do kraja plana.',
       monthly: 'Mjesečni proračun',
-      from: 'Od razdoblja {month}',
+      from: 'Od {month}',
       current: 'Trenutne mjesečne emisije',
       sources: {
         sample: 'Primjer vrijednosti',
@@ -186,9 +186,9 @@ export const goals: MessageShape<typeof en> = {
     monthly: {
       title: 'Mjesečni plan emisija',
       description:
-        'Proračun se svaki mjesec smanjuje za isti iznos, od sadašnjih {baseline} do {budget} u razdoblju {month}, kako bi promjena bila izvediva.',
-      notStarted: 'Plan počinje u razdoblju {month}. Do tada se napredak mjeri prema cilju za prvi mjesec.',
-      finished: 'Plan je završio u razdoblju {month}. Konačni proračun ostaje na snazi; za nastavak započnite novi plan u 1. koraku.',
+        'Proračun se svaki mjesec smanjuje za isti iznos, sa sadašnjih {baseline} na {budget} do {month}, kako bi promjena bila izvediva.',
+      notStarted: 'Početak plana: {month} Do tada se napredak mjeri prema cilju za prvi mjesec.',
+      finished: 'Posljednji mjesec plana bio je {month} Konačni proračun ostaje na snazi; za nastavak započnite novi plan u 1. koraku.',
       caption: 'Mjesečni ciljevi proračuna od {start} do {end}, s udjelom svake kategorije',
       month: 'Mjesec',
       budget: 'Proračun',
@@ -235,7 +235,7 @@ export const goals: MessageShape<typeof en> = {
     progress: {
       title: 'Napredak prema cilju',
       description:
-        'Kako ide razdoblje {month} u odnosu na ovomjesečni cilj od {target}. Crta na svakoj traci pokazuje koliko je mjeseca prošlo.',
+        'Napredak za mjesec {month} u odnosu na ovomjesečni cilj od {target}. Crta na svakoj traci pokazuje koliko je mjeseca prošlo.',
       loading: 'Učitavanje zabilježenih aktivnosti…',
       loadError: '{error} Napredak se ne može prikazati dok se aktivnosti ne učitaju.',
       fromTracking: 'Ovaj mjesec zabilježeno: {activities}, procijenjeno pomoću okvirnih emisijskih faktora iz praćenja emisija.',
@@ -308,7 +308,7 @@ export const goals: MessageShape<typeof en> = {
     summary: {
       title: 'Sažetak proračuna emisija',
       description: 'Sve iz vašeg plana na jednoj stranici.',
-      byMonth: 'Do razdoblja {month}',
+      byMonth: 'Do {month}',
       goal: 'Cilj',
       goalValue: '{percent} manje',
       goalFrom: 'Od {kg} ({source})',
