@@ -2,7 +2,11 @@ import { useId, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/Button'
 import { ButtonLink } from '../../../components/ButtonLink'
 import { CRITERIA, priorityLabel } from '../criteria'
-import { DataError } from '../../../lib/dataErrors'
+import { DataError, type DataErrorCode } from '../../../lib/dataErrors'
+import { dataErrorCode, dataErrorText } from '../../../lib/errorMessages'
+import { isOffline } from '../../../hooks/useOnlineStatus'
+import { useI18n } from '../../../i18n'
+import { RichText } from '../../../i18n/RichText'
 import { useComparisonRepository } from '../useComparisonRepository'
 import { formatDateTime, formatDuration, formatEuro, formatKg, formatPeople } from '../format'
 import { getTransportOption } from '../transportOptions'
@@ -24,10 +28,12 @@ interface SaveComparisonProps {
 
 /** Screen 9 — Save comparison. */
 export function SaveComparison({ result, saved, onSaved, onBack }: SaveComparisonProps) {
+  const { t } = useI18n()
   const { journey, priorities } = result.input
-  const [name, setName] = useState(`${journey.from} to ${journey.to}`.slice(0, NAME_MAX))
-  const [error, setError] = useState<string>()
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [name, setName] = useState(() => t('compare.save.defaultName', { from: journey.from, to: journey.to }).slice(0, NAME_MAX))
+  const [error, setError] = useState(false)
+  // 'offline' or a DataError code; the text is translated when shown.
+  const [submitError, setSubmitError] = useState<DataErrorCode | 'offline' | null>(null)
   const [saving, setSaving] = useState(false)
   const inputRef = useRef<HTMLDivElement>(null)
   const id = useId()
@@ -37,10 +43,15 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
+    if (saving) return
     const trimmed = name.trim()
     if (!trimmed) {
-      setError('Give the comparison a name.')
+      setError(true)
       inputRef.current?.querySelector('input')?.focus()
+      return
+    }
+    if (isOffline()) {
+      setSubmitError('offline')
       return
     }
     setSaving(true)
@@ -61,7 +72,7 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
       })
       onSaved(created)
     } catch (reason) {
-      setSubmitError(reason instanceof Error ? reason.message : 'The comparison could not be saved.')
+      setSubmitError(dataErrorCode(reason))
     } finally {
       setSaving(false)
     }
@@ -70,20 +81,20 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
   if (saved) {
     return (
       <div className="compare-success" role="status">
-        <p className="compare-success__title">Comparison saved</p>
+        <p className="compare-success__title">{t('compare.save.savedTitle')}</p>
         <p>
-          “{saved.name}” was saved on {formatDateTime(saved.savedAt)}. You can open it again from{' '}
-          <strong>Saved comparisons</strong>.
+          <RichText
+            text={t('compare.save.savedText', { name: saved.name, date: formatDateTime(saved.savedAt) })}
+            values={{ saved: <strong>{t('compare.save.savedLink')}</strong> }}
+          />
         </p>
-        <p className="compare-muted">
-          It is stored in your account, so it is available whenever you sign in, on any device.
-        </p>
+        <p className="compare-muted">{t('compare.save.storedNote')}</p>
         <div className="compare-actions compare-actions--start">
           <ButtonLink href="#/saved" icon="arrow-right">
-            View saved comparisons
+            {t('compare.save.viewSaved')}
           </ButtonLink>
           <Button variant="secondary" onClick={onBack}>
-            Back to results
+            {t('compare.save.backToResults')}
           </Button>
         </div>
       </div>
@@ -95,10 +106,10 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
       <div className="auth-gate">
         <p className="auth-gate__reason">
           {authStatus === 'not-configured'
-            ? new DataError('not-configured').message
+            ? dataErrorText('not-configured')
             : authStatus === 'loading'
-              ? 'Checking your sign-in…'
-              : 'Sign in or create an account to save this comparison. Your results stay here while you do.'}
+              ? t('auth.checking')
+              : t('compare.save.signInReason')}
         </p>
         {authStatus === 'signed-out' && <AuthForm />}
       </div>
@@ -110,57 +121,66 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
       <form className="compare-form" onSubmit={handleSubmit} noValidate>
         {submitError && (
           <div className="compare-form__summary" role="alert">
-            {submitError} Please try again.
+            {submitError === 'offline'
+              ? t('offline.saveBlocked')
+              : t('compare.save.failed', { error: dataErrorText(submitError) })}
           </div>
         )}
         <div ref={inputRef}>
           <Field
             id={`${id}-name`}
-            label="Name"
-            hint="So you can recognise it later."
+            label={t('compare.save.name')}
+            hint={t('compare.save.nameHint')}
             value={name}
-            error={error}
+            error={error ? t('compare.validation.nameRequired') : undefined}
             maxLength={NAME_MAX}
             onChange={(value) => {
               setName(value)
-              if (value.trim()) setError(undefined)
+              if (value.trim()) setError(false)
             }}
           />
         </div>
         <div className="compare-actions">
           <Button variant="secondary" onClick={onBack} disabled={saving}>
-            Cancel
+            {t('compare.save.cancel')}
           </Button>
           <Button type="submit" icon="bookmark" disabled={saving}>
-            {saving ? 'Saving…' : 'Save comparison'}
+            {saving ? t('actions.saving') : t('compare.save.submit')}
           </Button>
         </div>
       </form>
 
-      <Panel id="compare-save-summary" title="What will be saved">
+      <Panel id="compare-save-summary" title={t('compare.save.whatSaved')}>
         <dl className="compare-details">
           <div>
-            <dt>Date</dt>
+            <dt>{t('compare.save.date')}</dt>
             <dd>{formatDateTime(now)}</dd>
           </div>
           <div>
-            <dt>Journey</dt>
+            <dt>{t('compare.save.journey')}</dt>
             <dd>
-              {journey.from} → {journey.to}, {journey.distanceKm} km, {formatPeople(journey.passengers)}
+              {t('compare.save.journeyValue', {
+                from: journey.from,
+                to: journey.to,
+                distance: journey.distanceKm,
+                people: formatPeople(journey.passengers),
+              })}
             </dd>
           </div>
           <div>
-            <dt>Priorities</dt>
+            <dt>{t('compare.save.priorities')}</dt>
             <dd>
-              {CRITERIA.map((criterion) => `${criterion.label}: ${priorityLabel(priorities[criterion.id]).toLowerCase()}`).join(' · ')}
+              {CRITERIA.map((criterion) =>
+                t('compare.save.priorityItem', { criterion: criterion.label, level: priorityLabel(priorities[criterion.id]) }),
+              ).join(' · ')}
             </dd>
           </div>
           <div>
-            <dt>Recommended</dt>
+            <dt>{t('compare.save.recommended')}</dt>
             <dd>{getTransportOption(result.recommended).label}</dd>
           </div>
           <div>
-            <dt>Results (per person)</dt>
+            <dt>{t('compare.save.resultsPerPerson')}</dt>
             <dd>
               <ul className="compare-save__options">
                 {result.options.map((option) => (

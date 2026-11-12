@@ -1,4 +1,6 @@
+import { useId } from 'react'
 import { Icon } from '../../../components/Icon'
+import { useI18n } from '../../../i18n'
 import { TRANSPORT_OPTIONS } from '../transportOptions'
 import type { TransportOptionId } from '../types'
 
@@ -12,7 +14,9 @@ interface ModePickerProps {
 
 /** Checkbox cards for choosing the transport options to compare (screen 2 and the scenario screen). */
 export function ModePicker({ legend, selected, error, onChange, compact = false }: ModePickerProps) {
-  const errorId = 'compare-modes-error'
+  const { t } = useI18n()
+  // Unique, because the picker appears on two screens.
+  const errorId = `${useId()}-modes-error`
 
   function toggle(id: TransportOptionId, checked: boolean) {
     // Keep the options in the order they are listed, whatever order they were ticked in.
@@ -29,7 +33,7 @@ export function ModePicker({ legend, selected, error, onChange, compact = false 
     >
       <legend className="compare-modes__legend">{legend}</legend>
       <p className="compare-modes__count" aria-live="polite">
-        {selected.length} selected
+        {t('compare.transport.selected', { count: selected.length })}
       </p>
       {error && (
         <p id={errorId} className="compare-field__error" role="alert">

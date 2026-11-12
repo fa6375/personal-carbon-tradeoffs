@@ -1,4 +1,8 @@
-/** Journey form values and validation (screen 3 and the scenario screen). */
+/**
+ * Journey form values and validation (screen 3 and the scenario screen).
+ * Errors are translation keys with parameters, so they follow the language.
+ */
+import type { MessageKey, MessageParams } from '../../i18n'
 import type { Journey } from './types'
 
 export const MAX_DISTANCE_KM = 1000
@@ -13,7 +17,11 @@ export interface JourneyFormValues {
 }
 
 export type JourneyField = keyof JourneyFormValues
-export type JourneyErrors = Partial<Record<JourneyField, string>>
+export interface FieldMessage {
+  key: MessageKey
+  params?: MessageParams
+}
+export type JourneyErrors = Partial<Record<JourneyField, FieldMessage>>
 
 export const EMPTY_JOURNEY: JourneyFormValues = { from: '', to: '', distanceKm: '', passengers: '1' }
 
@@ -24,40 +32,40 @@ export function parseDecimal(text: string): number {
   return Number(normalised)
 }
 
-export function validateDistance(text: string): string | undefined {
-  if (!text.trim()) return 'Enter the distance in kilometres.'
+export function validateDistance(text: string): FieldMessage | undefined {
+  if (!text.trim()) return { key: 'compare.validation.distanceRequired' }
   const value = parseDecimal(text)
-  if (Number.isNaN(value)) return 'Enter the distance as a number, for example 12 or 12.5.'
-  if (value <= 0) return 'The distance must be more than 0 km.'
-  if (value > MAX_DISTANCE_KM) return `Enter a distance of at most ${MAX_DISTANCE_KM} km.`
+  if (Number.isNaN(value)) return { key: 'compare.validation.distanceNumber' }
+  if (value <= 0) return { key: 'compare.validation.distancePositive' }
+  if (value > MAX_DISTANCE_KM) return { key: 'compare.validation.distanceMax', params: { max: MAX_DISTANCE_KM } }
   return undefined
 }
 
-export function validatePassengers(text: string): string | undefined {
-  if (!text.trim()) return 'Enter how many people are travelling.'
-  if (!/^\d+$/.test(text.trim())) return 'Enter a whole number, for example 1 or 3.'
+export function validatePassengers(text: string): FieldMessage | undefined {
+  if (!text.trim()) return { key: 'compare.validation.passengersRequired' }
+  if (!/^\d+$/.test(text.trim())) return { key: 'compare.validation.passengersWhole' }
   const value = Number(text.trim())
-  if (value < 1) return 'At least 1 person must travel.'
-  if (value > MAX_PASSENGERS) return `Enter at most ${MAX_PASSENGERS} people.`
+  if (value < 1) return { key: 'compare.validation.passengersMin' }
+  if (value > MAX_PASSENGERS) return { key: 'compare.validation.passengersMax', params: { max: MAX_PASSENGERS } }
   return undefined
 }
 
-function validatePlace(text: string, label: string): string | undefined {
-  if (!text.trim()) return `Enter the ${label}.`
-  if (text.trim().length > PLACE_MAX) return `Use at most ${PLACE_MAX} characters.`
+function validatePlace(text: string, requiredKey: MessageKey): FieldMessage | undefined {
+  if (!text.trim()) return { key: requiredKey }
+  if (text.trim().length > PLACE_MAX) return { key: 'compare.validation.placeTooLong', params: { max: PLACE_MAX } }
   return undefined
 }
 
 export function validateJourney(values: JourneyFormValues): JourneyErrors {
   const errors: JourneyErrors = {}
-  const from = validatePlace(values.from, 'starting point')
-  const to = validatePlace(values.to, 'destination')
+  const from = validatePlace(values.from, 'compare.validation.fromRequired')
+  const to = validatePlace(values.to, 'compare.validation.toRequired')
   const distance = validateDistance(values.distanceKm)
   const passengers = validatePassengers(values.passengers)
   if (from) errors.from = from
   if (to) errors.to = to
   if (!from && !to && values.from.trim().toLowerCase() === values.to.trim().toLowerCase()) {
-    errors.to = 'The destination must be different from the starting point.'
+    errors.to = { key: 'compare.validation.samePlace' }
   }
   if (distance) errors.distanceKm = distance
   if (passengers) errors.passengers = passengers

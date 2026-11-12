@@ -1,7 +1,8 @@
 /** Small presentational building blocks shared by the Compare screens. */
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { Button } from '../../../components/Button'
 import { Icon } from '../../../components/Icon'
+import { t } from '../../../i18n'
 import { getTransportOption } from '../transportOptions'
 import type { TransportOptionId } from '../types'
 
@@ -55,9 +56,7 @@ export function EstimateNotice() {
     <p className="compare-notice">
       <Icon name="info" size={16} />
       <span>
-        <strong>Estimates.</strong> CO₂, cost and time are calculated from illustrative average
-        values, not live routes, fares or traffic. They show the trade-offs between options, not
-        exact figures for your trip.
+        <strong>{t('compare.estimateTitle')}</strong> {t('compare.estimateNotice')}
       </span>
     </p>
   )
@@ -113,7 +112,7 @@ export function Field({
   return (
     <div className={`compare-field${error ? ' compare-field--invalid' : ''}`}>
       <label className="compare-field__label" htmlFor={id}>
-        {label}
+        {label} <span className="compare-field__required">{t('actions.required')}</span>
       </label>
       {hint && (
         <p id={`${id}-hint`} className="compare-field__hint">
@@ -128,6 +127,7 @@ export function Field({
           inputMode={inputMode}
           autoComplete={autoComplete}
           maxLength={maxLength}
+          required
           value={value}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
@@ -157,6 +157,7 @@ interface ConfirmDialogProps {
 /** Modal confirmation on the native <dialog> element (focus trap, Esc to close, focus restore). */
 export function ConfirmDialog({ open, title, message, confirmLabel, busy = false, onConfirm, onCancel }: ConfirmDialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
+  const dialogId = useId()
 
   useEffect(() => {
     const dialog = ref.current
@@ -169,23 +170,23 @@ export function ConfirmDialog({ open, title, message, confirmLabel, busy = false
     <dialog
       ref={ref}
       className="compare-dialog"
-      aria-labelledby="compare-dialog-title"
-      aria-describedby="compare-dialog-message"
+      aria-labelledby={`${dialogId}-title`}
+      aria-describedby={`${dialogId}-message`}
       onCancel={(event) => {
         event.preventDefault()
         if (!busy) onCancel()
       }}
     >
-      <h2 id="compare-dialog-title" className="compare-dialog__title">
+      <h2 id={`${dialogId}-title`} className="compare-dialog__title">
         {title}
       </h2>
-      <p id="compare-dialog-message">{message}</p>
+      <p id={`${dialogId}-message`}>{message}</p>
       <div className="compare-dialog__actions">
         <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
-          Cancel
+          {t('actions.cancel')}
         </Button>
         <Button className="compare-button--danger" onClick={onConfirm} disabled={busy}>
-          {busy ? 'Deleting…' : confirmLabel}
+          {busy ? t('actions.deleting') : confirmLabel}
         </Button>
       </div>
     </dialog>

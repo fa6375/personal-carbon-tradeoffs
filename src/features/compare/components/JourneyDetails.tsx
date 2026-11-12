@@ -1,6 +1,8 @@
 import { useId, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/Button'
 import { Icon } from '../../../components/Icon'
+import { useI18n } from '../../../i18n'
+import { listModes } from '../calculate'
 import { getTransportOption } from '../transportOptions'
 import type { TransportOptionId } from '../types'
 import {
@@ -26,6 +28,7 @@ const FIELD_ORDER: JourneyField[] = ['from', 'to', 'distanceKm', 'passengers']
 
 /** Screen 3 — Enter journey. */
 export function JourneyDetails({ initial, modes, onContinue, onBack }: JourneyDetailsProps) {
+  const { t } = useI18n()
   const [values, setValues] = useState(initial)
   const [errors, setErrors] = useState<JourneyErrors>({})
   const formRef = useRef<HTMLFormElement>(null)
@@ -66,28 +69,26 @@ export function JourneyDetails({ initial, modes, onContinue, onBack }: JourneyDe
     <form ref={formRef} className="compare-form" onSubmit={handleSubmit} noValidate>
       {errorCount > 0 && (
         <div className="compare-form__summary" role="alert">
-          {errorCount === 1
-            ? 'Please correct the highlighted field.'
-            : `Please correct the ${errorCount} highlighted fields.`}
+          {t('compare.journey.errorSummary', { count: errorCount })}
         </div>
       )}
 
       <div className="compare-form__row">
         <Field
           id={id('from')}
-          label="Starting point"
-          hint="For example: Home, or Ilica 10, Zagreb"
+          label={t('compare.journey.from')}
+          hint={t('compare.journey.fromHint')}
           value={values.from}
-          error={errors.from}
+          error={errors.from && t(errors.from.key, errors.from.params)}
           maxLength={PLACE_MAX}
           onChange={(value) => set('from', value)}
         />
         <Field
           id={id('to')}
-          label="Destination"
-          hint="For example: University campus"
+          label={t('compare.journey.to')}
+          hint={t('compare.journey.toHint')}
           value={values.to}
-          error={errors.to}
+          error={errors.to && t(errors.to.key, errors.to.params)}
           maxLength={PLACE_MAX}
           onChange={(value) => set('to', value)}
         />
@@ -95,12 +96,12 @@ export function JourneyDetails({ initial, modes, onContinue, onBack }: JourneyDe
 
       <Field
         id={id('distanceKm')}
-        label="Distance (one way)"
+        label={t('compare.journey.distance')}
         unit="km"
         inputMode="decimal"
-        hint="Type the distance, or look it up on the map below. Every option uses this one distance."
+        hint={t('compare.journey.distanceHint')}
         value={values.distanceKm}
-        error={errors.distanceKm}
+        error={errors.distanceKm && t(errors.distanceKm.key, errors.distanceKm.params)}
         onChange={(value) => set('distanceKm', value)}
       />
 
@@ -119,15 +120,15 @@ export function JourneyDetails({ initial, modes, onContinue, onBack }: JourneyDe
 
       <Field
         id={id('passengers')}
-        label="People travelling together, including you"
+        label={t('compare.journey.passengers')}
         inputMode="numeric"
         hint={
           hasSharedVehicle
-            ? `In a car, emissions and costs are shared between everyone in it (1–${MAX_PASSENGERS}). Results are per person.`
-            : `1–${MAX_PASSENGERS}. Results are shown per person.`
+            ? t('compare.journey.passengersShared', { max: MAX_PASSENGERS })
+            : t('compare.journey.passengersHint', { max: MAX_PASSENGERS })
         }
         value={values.passengers}
-        error={errors.passengers}
+        error={errors.passengers && t(errors.passengers.key, errors.passengers.params)}
         onChange={(value) => set('passengers', value)}
       />
 
@@ -135,19 +136,17 @@ export function JourneyDetails({ initial, modes, onContinue, onBack }: JourneyDe
         <p className="compare-notice compare-notice--warning" role="status">
           <Icon name="info" size={16} />
           <span>
-            {tooFar.map((option) => option.label).join(' and ')}{' '}
-            {tooFar.length === 1 ? 'is' : 'are'} not practical for most people over this distance. It
-            is still calculated so you can see the trade-off.
+            {t('compare.journey.tooFar', { count: tooFar.length, options: listModes(tooFar.map((option) => option.id)) })}
           </span>
         </p>
       )}
 
       <div className="compare-actions">
         <Button variant="secondary" onClick={() => onBack(values)}>
-          Back
+          {t('compare.journey.back')}
         </Button>
         <Button type="submit" icon="arrow-right">
-          Continue to priorities
+          {t('compare.journey.continue')}
         </Button>
       </div>
     </form>

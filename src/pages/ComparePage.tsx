@@ -15,6 +15,8 @@ import { ComparisonError, calculateComparison, totalWeight } from '../features/c
 import { useComparisonRepository } from '../features/compare/useComparisonRepository'
 import { useAuth } from '../features/auth/authContext'
 import { DataError } from '../lib/dataErrors'
+import { dataErrorCode } from '../lib/errorMessages'
+import { t as translate, useI18n, type MessageKey } from '../i18n'
 import { DEFAULT_PRIORITIES, NO_PRIORITY_ERROR } from '../features/compare/criteria'
 import type {
   CompareProblem,
@@ -36,33 +38,20 @@ import '../features/compare/compare.css'
 
 type ViewName = CompareView['name']
 
-const SETUP_STEPS: { name: ViewName; label: string }[] = [
-  { name: 'transport', label: 'Transport' },
-  { name: 'journey', label: 'Journey' },
-  { name: 'priorities', label: 'Priorities' },
-  { name: 'results', label: 'Results' },
+const SETUP_STEPS: { name: ViewName; labelKey: MessageKey }[] = [
+  { name: 'transport', labelKey: 'compare.steps.transport' },
+  { name: 'journey', labelKey: 'compare.steps.journey' },
+  { name: 'priorities', labelKey: 'compare.steps.priorities' },
+  { name: 'results', labelKey: 'compare.steps.results' },
 ]
 
-const RESULT_TABS: { name: ViewName; label: string }[] = [
-  { name: 'results', label: 'Results' },
-  { name: 'breakdown', label: 'Breakdown' },
-  { name: 'recommendation', label: 'Recommendation' },
-  { name: 'scenario', label: 'What if' },
-  { name: 'save', label: 'Save' },
+const RESULT_TABS: { name: ViewName; labelKey: MessageKey }[] = [
+  { name: 'results', labelKey: 'compare.tabs.results' },
+  { name: 'breakdown', labelKey: 'compare.tabs.breakdown' },
+  { name: 'recommendation', labelKey: 'compare.tabs.recommendation' },
+  { name: 'scenario', labelKey: 'compare.tabs.scenario' },
+  { name: 'save', labelKey: 'compare.tabs.save' },
 ]
-
-const VIEW_TITLES: Record<ViewName, string> = {
-  start: 'Compare everyday choices',
-  transport: 'Choose transport',
-  journey: 'Enter your journey',
-  priorities: 'Set your priorities',
-  results: 'Comparison results',
-  breakdown: 'Detailed breakdown',
-  recommendation: 'Recommended option',
-  scenario: 'Try an alternative scenario',
-  save: 'Save comparison',
-  error: 'Something went wrong',
-}
 
 /** Reads the id from "#/compare?saved=<id>", the link used by Saved comparisons. */
 function savedIdFromHash(): string | null {
@@ -71,15 +60,19 @@ function savedIdFromHash(): string | null {
 }
 
 function toProblem(reason: unknown): CompareProblem {
-  if (reason instanceof ComparisonError) return { kind: reason.kind, message: reason.message }
+  if (reason instanceof ComparisonError) {
+    return { kind: reason.kind, message: reason.message, messageKey: reason.messageKey, messageParams: reason.messageParams }
+  }
   return {
     kind: 'calculation-failed',
-    message: reason instanceof Error ? reason.message : 'An unexpected error happened while calculating.',
+    message: 'An unexpected error happened while calculating.',
+    messageKey: 'compare.calcErrors.unexpected',
   }
 }
 
 /** Compare Everyday Choices (Faraj Aliyev). Hosts the ten screens of the feature. */
 export function ComparePage() {
+  const { t } = useI18n()
   const [view, setView] = useState<CompareView>({ name: 'start' })
   const [modes, setModes] = useState<TransportOptionId[]>([])
   const [journeyValues, setJourneyValues] = useState<JourneyFormValues>(EMPTY_JOURNEY)
@@ -128,7 +121,11 @@ export function ComparePage() {
         if (!found) {
           go({
             name: 'error',
-            problem: { kind: 'not-found', message: 'There is no saved comparison with this link.' },
+            problem: {
+              kind: 'not-found',
+              message: 'There is no saved comparison with this link.',
+              messageKey: 'compare.calcErrors.notFoundLink',
+            },
           })
           return
         }
@@ -138,7 +135,7 @@ export function ComparePage() {
         try {
           setResult(calculateComparison(found.input))
           setSaved(found)
-          go({ name: 'results' }, `Opened saved comparison “${found.name}”.`)
+          go({ name: 'results' }, translate('compare.announce.opened', { name: found.name }))
         } catch (reason) {
           setResult(null)
           go({ name: 'error', problem: toProblem(reason) })
@@ -151,6 +148,7 @@ export function ComparePage() {
           problem: {
             kind: 'storage',
             message: reason instanceof Error ? reason.message : 'Saved comparisons could not be read.',
+            messageKey: `errors.data.${dataErrorCode(reason)}`,
           },
         })
       })
@@ -172,15 +170,26 @@ export function ComparePage() {
       let next = input
       if (!next) {
         if (modes.length < 2) {
-          throw new ComparisonError('missing-information', 'Choose at least two ways to travel to compare.')
+          throw new ComparisonError(
+            'missing-information',
+            'Choose at least two ways to travel to compare.',
+            'compare.transport.noneChosen',
+          )
         }
         const errors = validateJourney(journeyValues)
         const first = Object.values(errors)[0]
         if (first) {
           const empty = !journeyValues.from.trim() || !journeyValues.to.trim() || !journeyValues.distanceKm.trim()
-          throw new ComparisonError(empty ? 'missing-information' : 'invalid-input', `Journey details: ${first}`)
+          throw new ComparisonError(
+            empty ? 'missing-information' : 'invalid-input',
+            `Journey details: ${first.key}`,
+            'compare.validation.journeyPrefix',
+            { error: translate(first.key, first.params) },
+          )
         }
-        if (totalWeight(priorities) === 0) throw new ComparisonError('invalid-input', NO_PRIORITY_ERROR)
+        if (totalWeight(priorities) === 0) {
+          throw new ComparisonError('invalid-input', NO_PRIORITY_ERROR, 'compare.noPriority')
+        }
         next = { modes, journey: toJourney(journeyValues), priorities }
       }
       const calculated = calculateComparison(next)
@@ -222,11 +231,11 @@ export function ComparePage() {
 
   const back: { label: string; to: CompareView } | null =
     view.name === 'transport' || view.name === 'error'
-      ? { label: 'Back to start', to: { name: 'start' } }
+      ? { label: t('compare.backToStart'), to: { name: 'start' } }
       : null
 
   function renderView() {
-    if (pendingSavedId) return <LoadingState label="Opening saved comparison…" />
+    if (pendingSavedId) return <LoadingState label={t('compare.openingSaved')} />
 
     switch (view.name) {
       case 'start':
@@ -278,7 +287,7 @@ export function ComparePage() {
                 return
               }
               if (compare({ modes, journey: toJourney(journeyValues), priorities: next })) {
-                go({ name: 'results' }, 'Comparison ready.')
+                go({ name: 'results' }, t('compare.announce.ready'))
               }
             }}
           />
@@ -288,15 +297,15 @@ export function ComparePage() {
         const primary =
           problem.kind === 'calculation-failed'
             ? {
-                label: 'Try again',
+                label: t('compare.error.tryAgain'),
                 onClick: () => {
                   if (compare(result?.input)) go({ name: 'results' })
                 },
               }
             : problem.kind === 'storage' && lastSavedId
-              ? { label: 'Try again', onClick: () => setPendingSavedId(lastSavedId) }
+              ? { label: t('compare.error.tryAgain'), onClick: () => setPendingSavedId(lastSavedId) }
               : problem.kind === 'invalid-input' || problem.kind === 'missing-information'
-                ? { label: 'Check your details', onClick: () => go(firstIncompleteStep()) }
+                ? { label: t('compare.error.checkDetails'), onClick: () => go(firstIncompleteStep()) }
                 : undefined
         return <CompareError problem={problem} primary={primary} onStartOver={startNew} />
       }
@@ -309,8 +318,9 @@ export function ComparePage() {
           problem={{
             kind: 'missing-information',
             message: 'There is no comparison yet. Choose your options and journey first.',
+            messageKey: 'compare.calcErrors.noComparison',
           }}
-          primary={{ label: 'Check your details', onClick: () => go(firstIncompleteStep()) }}
+          primary={{ label: t('compare.error.checkDetails'), onClick: () => go(firstIncompleteStep()) }}
           onStartOver={startNew}
         />
       )
@@ -345,7 +355,7 @@ export function ComparePage() {
               setModes(input.modes)
               setJourneyValues(toFormValues(input.journey))
               setPriorities(input.priorities)
-              if (compare(input)) go({ name: 'results' }, 'Scenario applied. Results recalculated.')
+              if (compare(input)) go({ name: 'results' }, t('compare.announce.scenarioApplied'))
             }}
           />
         )
@@ -368,13 +378,13 @@ export function ComparePage() {
   return (
     <div className="compare-page">
       <PageHeader
-        eyebrow="Compare everyday choices"
-        title="Compare journeys"
-        description="Compare ways of making the same trip by CO₂ emissions, cost and travel time, and find the option that fits your priorities."
+        eyebrow={t('compare.eyebrow')}
+        title={t('compare.title')}
+        description={t('compare.description')}
       />
 
       {inSetup && (
-        <nav className="compare-steps" aria-label="Comparison steps">
+        <nav className="compare-steps" aria-label={t('compare.stepsLabel')}>
           <ol className="compare-steps__list">
             {SETUP_STEPS.map((step, index) => (
               <li key={step.name}>
@@ -388,8 +398,8 @@ export function ComparePage() {
                     {index + 1}
                   </span>
                   <span>
-                    <span className="visually-hidden">Step {index + 1}: </span>
-                    {step.label}
+                    <span className="visually-hidden">{t('compare.stepPrefix', { number: index + 1 })}</span>
+                    {t(step.labelKey)}
                   </span>
                 </button>
               </li>
@@ -400,7 +410,7 @@ export function ComparePage() {
 
       {inResults && (
         <div className="compare-toolbar">
-          <nav aria-label="Comparison sections">
+          <nav aria-label={t('compare.sectionsLabel')}>
             <ul className="compare-tabs">
               {RESULT_TABS.map((tab) => (
                 <li key={tab.name}>
@@ -410,7 +420,7 @@ export function ComparePage() {
                     aria-current={view.name === tab.name ? 'page' : undefined}
                     onClick={() => go({ name: tab.name } as CompareView)}
                   >
-                    {tab.label}
+                    {t(tab.labelKey)}
                   </button>
                 </li>
               ))}
@@ -418,10 +428,10 @@ export function ComparePage() {
           </nav>
           <div className="compare-toolbar__actions">
             <button type="button" className="compare-link-button" onClick={() => go({ name: 'transport' })}>
-              Edit choices
+              {t('compare.editChoices')}
             </button>
             <button type="button" className="compare-link-button" onClick={startNew}>
-              New comparison
+              {t('compare.newComparison')}
             </button>
           </div>
         </div>
@@ -434,7 +444,7 @@ export function ComparePage() {
       <section ref={viewRef} className="compare-view" aria-labelledby="compare-view-title" tabIndex={-1}>
         {back && !pendingSavedId && <BackButton label={back.label} onClick={() => go(back.to)} />}
         <h2 id="compare-view-title" className="compare-view__title">
-          {pendingSavedId ? 'Saved comparison' : VIEW_TITLES[view.name]}
+          {pendingSavedId ? t('compare.views.savedLoading') : t(`compare.views.${view.name}`)}
         </h2>
         {message && !pendingSavedId && (
           <p className="compare-flash" aria-hidden="true">
@@ -443,7 +453,7 @@ export function ComparePage() {
         )}
         {saved && inResults && view.name !== 'save' && (
           <p className="compare-muted">
-            Saved as “{saved.name}”. Changes you make here are not saved unless you save again.
+            {t('compare.savedAs', { name: saved.name })}
           </p>
         )}
         {renderView()}
