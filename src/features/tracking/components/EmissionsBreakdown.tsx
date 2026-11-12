@@ -9,14 +9,20 @@ import { CategoryTag, EstimateNotice, Panel, ShareBar } from './TrackingUi'
 
 /** Screen 9 — Carbon Emissions Breakdown. */
 export function EmissionsBreakdown({ activities }: { activities: Activity[] }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [period, setPeriod] = useState<PeriodId>('30d')
   const selectId = useId()
 
   const selected = activities.filter((activity) => inPeriod(activity, period))
   const total = totalKg(selected)
   const byCategory = totalsByCategory(selected)
-  const bySource = totalsBySource(selected)
+  // Largest first; equal amounts are ordered by their translated name with the
+  // language's own collation (so Č, Ć and Š sort correctly in Croatian).
+  const collator = new Intl.Collator(locale)
+  const bySource = totalsBySource(selected).sort(
+    (a, b) =>
+      b.kg - a.kg || collator.compare(sourceLabel(a.category, a.source), sourceLabel(b.category, b.source)),
+  )
 
   return (
     <div className="tracking-grid">

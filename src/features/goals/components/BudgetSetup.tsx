@@ -2,7 +2,7 @@ import { useState, type Dispatch } from 'react'
 import { ButtonLink } from '../../../components/ButtonLink'
 import { useI18n, type MessageKey } from '../../../i18n'
 import { allocationFromAmounts, getBaselineKg, getBudgetKg, splitKg, sumAmounts } from '../budget'
-import { formatKg, formatMonth, formatPercentValue, getUpcomingMonths } from '../format'
+import { formatKg, formatMonth, formatMonthGenitive, formatPercentValue, getUpcomingMonths } from '../format'
 import type { GoalPlanAction } from '../goalPlanReducer'
 import { CUSTOM_BASELINE_LIMITS, DURATION_OPTIONS, REDUCTION_OPTIONS, SAMPLE_BASELINE } from '../sampleData'
 import type { TrackedData } from '../trackedEmissions'
@@ -239,7 +239,7 @@ export function BudgetSetup({ plan, dispatch, tracked }: BudgetSetupProps) {
           percent: formatPercentValue(plan.reductionPercent),
           baseline: formatKg(getBaselineKg(plan)),
           budget: formatKg(budgetKg),
-          month: formatMonth(plan.startMonth, plan.durationMonths - 1),
+          month: formatMonthGenitive(plan.startMonth, plan.durationMonths - 1),
         })}
       </div>
 
