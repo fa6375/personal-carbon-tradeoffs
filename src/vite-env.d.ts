@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID?: string
   readonly VITE_FIREBASE_USE_EMULATOR?: string
   readonly VITE_FIREBASE_EMULATOR_HOST?: string
+  readonly VITE_FIREBASE_EMULATOR_PROJECT_ID?: string
   readonly VITE_GEOCODER_URL?: string
   readonly VITE_ROUTER_URL?: string
   readonly VITE_NOMINATIM_EMAIL?: string
