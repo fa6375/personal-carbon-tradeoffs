@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { useHashRoute, type ResolvedRoute } from './hooks/useHashRoute'
 import { AppLayout } from './layouts/AppLayout'
+import { LocalImportPanel } from './features/account/LocalImportPanel'
+import { RequireAuth } from './features/auth/RequireAuth'
+import { AccountPage } from './pages/AccountPage'
 import { ComparePage } from './pages/ComparePage'
 import { GoalsPage } from './pages/GoalsPage'
 import { HomePage } from './pages/HomePage'
@@ -15,6 +18,7 @@ const PAGE_TITLES: Record<ResolvedRoute, string> = {
   saved: 'Saved comparisons',
   goals: 'Carbon goals',
   tracking: 'Carbon tracking',
+  account: 'Account',
   settings: 'Settings',
   'not-found': 'Page not found',
 }
@@ -26,11 +30,27 @@ function renderPage(route: ResolvedRoute) {
     case 'compare':
       return <ComparePage />
     case 'saved':
-      return <SavedPage />
+      return (
+        <RequireAuth title="Saved comparisons" reason="Sign in to see the comparisons you have saved.">
+          <LocalImportPanel />
+          <SavedPage />
+        </RequireAuth>
+      )
     case 'goals':
-      return <GoalsPage />
+      return (
+        <RequireAuth title="Carbon reduction goals" reason="Sign in to create your carbon plan and keep it in your account.">
+          <GoalsPage />
+        </RequireAuth>
+      )
     case 'tracking':
-      return <TrackingPage />
+      return (
+        <RequireAuth title="Personal carbon tracking" reason="Sign in to record your activities and see your emissions.">
+          <LocalImportPanel />
+          <TrackingPage />
+        </RequireAuth>
+      )
+    case 'account':
+      return <AccountPage />
     case 'settings':
       return <SettingsPage />
     default:

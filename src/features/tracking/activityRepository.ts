@@ -1,13 +1,13 @@
 /**
  * Data-access layer for tracked activities.
  *
- * Screens only talk to the ActivityRepository interface. The current
- * implementation is TEMPORARY: it keeps activities in this browser's
- * localStorage, so data survives a page reload on the same device but is not
- * stored in the project database required by Deliverable 2 (the project has
- * no database yet). When the shared backend exists, add an API-backed
- * implementation of this interface and swap it in `activityRepository` below;
- * the screens do not need to change.
+ * Screens only talk to the ActivityRepository interface. The app uses the
+ * Cloud Firestore implementation (firestoreActivityRepository.ts).
+ *
+ * The localStorage implementation below is what the app used before the
+ * database existed. It is kept so activities saved that way can be read and
+ * imported into the user's account (see src/features/account/localImport.ts).
+ * Nothing writes to it any more.
  */
 import type { Activity, ActivityInput } from './types'
 
@@ -38,6 +38,11 @@ function isActivity(value: unknown): value is Activity {
     candidate.details !== null &&
     ['transport', 'food', 'home'].includes(candidate.details.category)
   )
+}
+
+/** Activities saved in this browser before the database existed (used by the import). */
+export function readLocalActivities(): Activity[] {
+  return read()
 }
 
 function read(): Activity[] {
@@ -104,6 +109,3 @@ export const localActivityRepository: ActivityRepository = {
     write(read().filter((activity) => activity.id !== id))
   },
 }
-
-/** The repository the feature uses. Replace with an API implementation later. */
-export const activityRepository: ActivityRepository = localActivityRepository

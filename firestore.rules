@@ -1,0 +1,164 @@
+rules_version = '2';
+
+// Carbon Choices — Cloud Firestore Security Rules.
+//
+// All data belongs to one user and lives under users/{uid}. A signed-in user
+// can read and write only their own documents; nobody can list or read other
+// users' data, and anything not matched below is denied. Field checks mirror
+// the validation in the app (src/features/*/validation.ts) so a modified
+// client cannot store broken or oversized data.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // New documents: timestamps set by the server, or earlier times for imported records.
+    function validCreateTimes() {
+      return incoming().createdAt is timestamp
+        && incoming().updatedAt is timestamp
+        && incoming().createdAt <= request.time
+        && incoming().updatedAt <= request.time;
+    }
+
+    // Updates: createdAt never changes and updatedAt is the server time.
+    function validUpdateTimes() {
+      return incoming().createdAt == resource.data.createdAt
+        && incoming().updatedAt == request.time;
+    }
+
+    function numberIn(value, min, max) {
+      return value is number && value >= min && value <= max;
+    }
+
+    function intIn(value, min, max) {
+      return value is int && value >= min && value <= max;
+    }
+
+    function stringUpTo(value, max) {
+      return value is string && value.size() <= max;
+    }
+
+    // ---------- Personal Carbon Tracking ----------
+    function validDetails(details) {
+      return details is map && (
+        (details.category == 'transport'
+          && details.keys().hasOnly(['category', 'mode', 'distanceKm', 'passengers'])
+          && details.mode in ['car-petrol', 'car-diesel', 'car-electric', 'motorbike', 'bus', 'tram', 'train', 'flight', 'bicycle', 'walk']
+          && numberIn(details.distanceKm, 0.1, 20000)
+          && intIn(details.passengers, 1, 9))
+        || (details.category == 'food'
+          && details.keys().hasOnly(['category', 'item', 'servings'])
+          && details.item in ['beef', 'lamb', 'pork', 'chicken', 'fish', 'cheese', 'eggs', 'vegetarian', 'vegan']
+          && numberIn(details.servings, 0.5, 20))
+        || (details.category == 'home'
+          && details.keys().hasOnly(['category', 'source', 'kwh', 'householdSize'])
+          && details.source in ['electricity', 'natural-gas', 'heating-oil', 'lpg', 'district-heating']
+          && numberIn(details.kwh, 0.1, 100000)
+          && intIn(details.householdSize, 1, 20))
+      );
+    }
+
+    function validActivity(data) {
+      return data.keys().hasAll(['date', 'note', 'details', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['date', 'note', 'details', 'createdAt', 'updatedAt', 'importedFrom'])
+        && data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && stringUpTo(data.note, 120)
+        && validDetails(data.details)
+        && (!('importedFrom' in data) || data.importedFrom == 'localStorage');
+    }
+
+    // ---------- Compare Everyday Choices ----------
+    function validPriorities(p) {
+      return p is map
+        && p.keys().hasOnly(['emissions', 'cost', 'time'])
+        && intIn(p.emissions, 0, 3) && intIn(p.cost, 0, 3) && intIn(p.time, 0, 3)
+        && p.emissions + p.cost + p.time > 0;
+    }
+
+    function validComparison(data) {
+      return data.keys().hasAll(['name', 'input', 'options', 'recommended', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'input', 'options', 'recommended', 'createdAt', 'updatedAt', 'importedFrom'])
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.recommended in ['walk', 'bicycle', 'bus', 'train', 'car', 'electric-car']
+        && data.input is map
+        && data.input.keys().hasOnly(['modes', 'journey', 'priorities'])
+        && data.input.modes is list && data.input.modes.size() >= 2 && data.input.modes.size() <= 6
+        && data.input.modes.hasOnly(['walk', 'bicycle', 'bus', 'train', 'car', 'electric-car'])
+        && data.recommended in data.input.modes
+        && data.input.journey is map
+        && stringUpTo(data.input.journey.from, 200)
+        && stringUpTo(data.input.journey.to, 200)
+        && numberIn(data.input.journey.distanceKm, 0.001, 1000)
+        && intIn(data.input.journey.passengers, 1, 9)
+        && validPriorities(data.input.priorities)
+        && data.options is list && data.options.size() == data.input.modes.size()
+        && (!('importedFrom' in data) || data.importedFrom == 'localStorage');
+    }
+
+    // ---------- Carbon Reduction Goals ----------
+    function validAmounts(m) {
+      return m is map
+        && m.keys().hasOnly(['transport', 'food', 'home'])
+        && m.transport is number && m.food is number && m.home is number;
+    }
+
+    function validGoalPlan(data) {
+      return data.keys().hasAll(['baseline', 'reductionPercent', 'durationMonths', 'startMonth', 'allocation',
+          'priorities', 'selectedOpportunityIds', 'adjustments', 'schemaVersion', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['baseline', 'reductionPercent', 'durationMonths', 'startMonth', 'allocation',
+          'priorities', 'selectedOpportunityIds', 'adjustments', 'schemaVersion', 'createdAt', 'updatedAt'])
+        && data.schemaVersion == 1
+        && data.baseline is map
+        && data.baseline.source in ['sample', 'tracked', 'custom']
+        && validAmounts(data.baseline.amounts)
+        && numberIn(data.reductionPercent, 0, 100)
+        && intIn(data.durationMonths, 1, 36)
+        && data.startMonth is string && data.startMonth.matches('^[0-9]{4}-[0-9]{2}$')
+        && validAmounts(data.allocation)
+        && data.priorities is list && data.priorities.size() <= 4
+        && data.priorities.hasOnly(['cost', 'time', 'comfort', 'impact'])
+        && data.selectedOpportunityIds is list && data.selectedOpportunityIds.size() <= 50
+        && data.adjustments is list && data.adjustments.size() <= 200;
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && incoming().keys().hasOnly(['email', 'createdAt', 'updatedAt'])
+        && stringUpTo(incoming().email, 320)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(uid)
+        && incoming().keys().hasOnly(['email', 'createdAt', 'updatedAt'])
+        && stringUpTo(incoming().email, 320)
+        && validUpdateTimes();
+
+      match /activities/{activityId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid) && validActivity(incoming()) && validCreateTimes();
+        allow update: if isOwner(uid) && validActivity(incoming()) && validUpdateTimes()
+          && incoming().get('importedFrom', null) == resource.data.get('importedFrom', null);
+      }
+
+      // Saved comparisons are a record of a past result, so they cannot be edited.
+      match /comparisons/{comparisonId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid) && validComparison(incoming()) && validCreateTimes();
+      }
+
+      // One active plan per user: users/{uid}/goalPlans/current.
+      match /goalPlans/{planId} {
+        allow read, delete: if isOwner(uid) && planId == 'current';
+        allow create: if isOwner(uid) && planId == 'current' && validGoalPlan(incoming())
+          && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+        allow update: if isOwner(uid) && planId == 'current' && validGoalPlan(incoming()) && validUpdateTimes();
+      }
+    }
+  }
+}

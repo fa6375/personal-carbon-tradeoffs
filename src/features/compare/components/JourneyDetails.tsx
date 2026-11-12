@@ -13,6 +13,7 @@ import {
   type JourneyFormValues,
 } from '../validation'
 import { Field } from './CompareUi'
+import { RouteDistanceLookup } from '../../routing/RouteDistanceLookup'
 
 interface JourneyDetailsProps {
   initial: JourneyFormValues
@@ -97,10 +98,23 @@ export function JourneyDetails({ initial, modes, onContinue, onBack }: JourneyDe
         label="Distance (one way)"
         unit="km"
         inputMode="decimal"
-        hint="Enter the distance yourself, for example from a map app. Carbon Choices does not calculate routes."
+        hint="Type the distance, or look it up on the map below. Every option uses this one distance."
         value={values.distanceKm}
         error={errors.distanceKm}
         onChange={(value) => set('distanceKm', value)}
+      />
+
+      <RouteDistanceLookup
+        from={values.from}
+        to={values.to}
+        preferred={
+          modes.some((mode) => mode === 'car' || mode === 'electric-car' || mode === 'bus')
+            ? 'driving'
+            : modes.includes('bicycle')
+              ? 'cycling'
+              : 'walking'
+        }
+        onUse={(km) => set('distanceKm', String(km))}
       />
 
       <Field

@@ -12,7 +12,9 @@ import { RecommendedOption } from '../features/compare/components/RecommendedOpt
 import { SaveComparison } from '../features/compare/components/SaveComparison'
 import { SetPriorities } from '../features/compare/components/SetPriorities'
 import { ComparisonError, calculateComparison, totalWeight } from '../features/compare/calculate'
-import { comparisonRepository } from '../features/compare/comparisonRepository'
+import { useComparisonRepository } from '../features/compare/useComparisonRepository'
+import { useAuth } from '../features/auth/authContext'
+import { DataError } from '../lib/dataErrors'
 import { DEFAULT_PRIORITIES, NO_PRIORITY_ERROR } from '../features/compare/criteria'
 import type {
   CompareProblem,
@@ -88,6 +90,8 @@ export function ComparePage() {
   const [lastSavedId, setLastSavedId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const viewRef = useRef<HTMLElement>(null)
+  const repository = useComparisonRepository()
+  const { status: authStatus } = useAuth()
 
   function go(next: CompareView, announce: string | null = null) {
     setView(next)
@@ -111,10 +115,14 @@ export function ComparePage() {
 
   useEffect(() => {
     if (!pendingSavedId) return
+    // Wait until Firebase has said whether someone is signed in.
+    if (!repository && authStatus === 'loading') return
     let cancelled = false
     const id = pendingSavedId
-    comparisonRepository
-      .get(id)
+    const request = repository
+      ? repository.get(id)
+      : Promise.reject(new DataError(authStatus === 'not-configured' ? 'not-configured' : 'not-signed-in'))
+    request
       .then((found) => {
         if (cancelled) return
         if (!found) {
@@ -156,7 +164,7 @@ export function ComparePage() {
     return () => {
       cancelled = true
     }
-  }, [pendingSavedId])
+  }, [pendingSavedId, repository, authStatus])
 
   /** Validates the draft and calculates; shows the error screen if that is not possible. */
   function compare(input?: ComparisonInput) {

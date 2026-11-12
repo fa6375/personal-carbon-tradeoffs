@@ -90,7 +90,7 @@ export function SavedComparisonList() {
       ) : (
         <>
           <p className="compare-muted">
-            {formatComparisonCount(comparisons.length)} saved in this browser.
+            {formatComparisonCount(comparisons.length)} saved in your account.
           </p>
           <ul className="compare-saved__list">
             {comparisons.map((comparison) => {
@@ -135,7 +135,7 @@ export function SavedComparisonList() {
       <ConfirmDialog
         open={toDelete !== null}
         title="Delete this comparison?"
-        message={toDelete ? `“${toDelete.name}” will be removed from this browser. This cannot be undone.` : ''}
+        message={toDelete ? `“${toDelete.name}” will be permanently deleted from your account. This cannot be undone.` : ''}
         confirmLabel="Delete comparison"
         busy={deleting}
         onConfirm={confirmDelete}

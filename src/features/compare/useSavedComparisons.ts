@@ -1,45 +1,55 @@
 import { useCallback, useEffect, useState } from 'react'
-import { comparisonRepository } from './comparisonRepository'
+import { DataError } from '../../lib/dataErrors'
 import type { SavedComparison } from './types'
+import { useComparisonRepository } from './useComparisonRepository'
 
 export type LoadStatus = 'loading' | 'ready' | 'error'
 
-/** Loads saved comparisons through the repository and keeps the list in sync after deletes. */
+interface Loaded {
+  key: number
+  status: 'ready' | 'error'
+  comparisons: SavedComparison[]
+  error: string | null
+}
+
+/** Loads the signed-in user's saved comparisons and keeps the list in sync after deletes. */
 export function useSavedComparisons() {
-  const [status, setStatus] = useState<LoadStatus>('loading')
-  const [comparisons, setComparisons] = useState<SavedComparison[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const repository = useComparisonRepository()
   const [attempt, setAttempt] = useState(0)
+  const [loaded, setLoaded] = useState<Loaded | null>(null)
 
   useEffect(() => {
+    if (!repository) return
     let cancelled = false
-    comparisonRepository
+    repository
       .list()
-      .then((list) => {
-        if (cancelled) return
-        setComparisons(list)
-        setStatus('ready')
+      .then((comparisons) => {
+        if (!cancelled) setLoaded({ key: attempt, status: 'ready', comparisons, error: null })
       })
       .catch((reason: unknown) => {
         if (cancelled) return
-        setError(reason instanceof Error ? reason.message : 'Saved comparisons could not be loaded.')
-        setStatus('error')
+        const message = reason instanceof Error ? reason.message : new DataError('unknown').message
+        setLoaded({ key: attempt, status: 'error', comparisons: [], error: message })
       })
     return () => {
       cancelled = true
     }
-  }, [attempt])
+  }, [repository, attempt])
 
-  const reload = useCallback(() => {
-    setStatus('loading')
-    setError(null)
-    setAttempt((count) => count + 1)
-  }, [])
+  const reload = useCallback(() => setAttempt((count) => count + 1), [])
 
-  const remove = useCallback(async (id: string) => {
-    await comparisonRepository.remove(id)
-    setComparisons((list) => list.filter((comparison) => comparison.id !== id))
-  }, [])
+  const remove = useCallback(
+    async (id: string) => {
+      if (!repository) throw new DataError('not-signed-in')
+      await repository.remove(id)
+      setLoaded((current) =>
+        current ? { ...current, comparisons: current.comparisons.filter((comparison) => comparison.id !== id) } : current,
+      )
+    },
+    [repository],
+  )
 
-  return { status, comparisons, error, reload, remove }
+  const current = repository && loaded?.key === attempt ? loaded : null
+  const status: LoadStatus = current?.status ?? 'loading'
+  return { status, comparisons: current?.comparisons ?? [], error: current?.error ?? null, reload, remove }
 }

@@ -8,7 +8,8 @@ import { BudgetAllocation } from '../features/goals/components/BudgetAllocation'
 import { BudgetSetup } from '../features/goals/components/BudgetSetup'
 import { BudgetSummary } from '../features/goals/components/BudgetSummary'
 import { GoalProgress } from '../features/goals/components/GoalProgress'
-import { AllocationWarning } from '../features/goals/components/GoalsUi'
+import { GoalPlanSyncBar } from '../features/goals/components/GoalPlanSyncBar'
+import { AllocationWarning, LoadingLine } from '../features/goals/components/GoalsUi'
 import { GoalsStepper } from '../features/goals/components/GoalsStepper'
 import { MonthlyPlan } from '../features/goals/components/MonthlyPlan'
 import { PersonalBudget } from '../features/goals/components/PersonalBudget'
@@ -16,15 +17,20 @@ import { ReductionOpportunities } from '../features/goals/components/ReductionOp
 import { TradeoffPriorities } from '../features/goals/components/TradeoffPriorities'
 import { toYearMonth } from '../features/goals/format'
 import { dispatchGoalPlan, setGoalsStage, useGoalsSession } from '../features/goals/goalPlanStore'
+import { retryGoalPlanLoad, useGoalPlanSync } from '../features/goals/goalPlanSync'
 import { GOALS_STAGES } from '../features/goals/stages'
 import { summariseTracked } from '../features/goals/trackedEmissions'
 import type { GoalsStageId } from '../features/goals/types'
 import { useActivities } from '../features/tracking/useActivities'
+import { useAuth } from '../features/auth/authContext'
 import '../features/goals/goals.css'
 
 /** Carbon Reduction Goals & Recommendations (Martin Mudrinić). */
 export function GoalsPage() {
   const { plan, stageId } = useGoalsSession()
+  // The plan is loaded from and saved to the signed-in user's account.
+  const { user } = useAuth()
+  const sync = useGoalPlanSync(user?.uid ?? null)
   const [selectedAdjustmentId, setSelectedAdjustmentId] = useState<string | null>(null)
   const [currentMonth] = useState(() => toYearMonth(new Date()))
   const stageRef = useRef<HTMLElement>(null)
@@ -58,81 +64,100 @@ export function GoalsPage() {
         description="Set a monthly carbon budget, share it across the parts of your life, and find changes that fit how you want to live."
       />
 
-      <GoalsStepper stages={GOALS_STAGES} current={stageId} onSelect={goTo} />
+      {(sync.load === 'idle' || sync.load === 'loading') && <LoadingLine>Loading your saved plan…</LoadingLine>}
 
-      <section
-        ref={stageRef}
-        className="goals-stage"
-        aria-labelledby="goals-stage-title"
-        tabIndex={-1}
-      >
-        <SectionHeading
-          id="goals-stage-title"
-          title={`Step ${stageIndex + 1} of ${GOALS_STAGES.length}: ${stage.title}`}
-          description={stage.description}
-        />
+      {sync.load === 'error' && (
+        <div className="goals-sync goals-sync--error" role="alert">
+          <p className="goals-sync__text">Your saved plan could not be loaded. {sync.error}</p>
+          <div className="goals-sync__actions">
+            <Button variant="secondary" onClick={retryGoalPlanLoad}>
+              Try again
+            </Button>
+          </div>
+        </div>
+      )}
 
-        {showAllocationWarning && (
-          <AllocationWarning allocation={plan.allocation} onFix={() => goTo('allocate')} />
-        )}
+      {sync.load === 'ready' && (
+        <>
+          <GoalPlanSyncBar sync={sync} />
 
-        <div className="goals-stage__panels">
-          {stageId === 'setup' && (
-            <>
-              <BudgetSetup plan={plan} dispatch={dispatch} tracked={tracked} />
-              <PersonalBudget plan={plan} />
-            </>
-          )}
-          {stageId === 'allocate' && (
-            <>
-              <BudgetAllocation plan={plan} dispatch={dispatch} />
-              <TradeoffPriorities plan={plan} dispatch={dispatch} />
-            </>
-          )}
-          {stageId === 'plan' && (
-            <>
-              <MonthlyPlan plan={plan} currentMonth={currentMonth} />
-              <ReductionOpportunities plan={plan} dispatch={dispatch} />
-            </>
-          )}
-          {stageId === 'track' && (
-            <>
-              <GoalProgress plan={plan} tracked={tracked} currentMonth={currentMonth} />
-              <BudgetAdjustmentForm
-                plan={plan}
-                dispatch={dispatch}
-                onApplied={setSelectedAdjustmentId}
-              />
-              <AdjustmentDetails
-                plan={plan}
-                selectedId={selectedAdjustmentId}
-                onSelect={setSelectedAdjustmentId}
-              />
-            </>
-          )}
-          {stageId === 'summary' && (
-            <BudgetSummary
-              plan={plan}
-              dispatch={dispatch}
-              onEdit={goTo}
-              currentMonth={currentMonth}
+          <GoalsStepper stages={GOALS_STAGES} current={stageId} onSelect={goTo} />
+
+          <section
+            ref={stageRef}
+            className="goals-stage"
+            aria-labelledby="goals-stage-title"
+            tabIndex={-1}
+          >
+            <SectionHeading
+              id="goals-stage-title"
+              title={`Step ${stageIndex + 1} of ${GOALS_STAGES.length}: ${stage.title}`}
+              description={stage.description}
             />
-          )}
-        </div>
 
-        <div className="goals-stage__nav">
-          {previous && (
-            <Button variant="secondary" onClick={() => goTo(previous.id)}>
-              Back: {previous.label}
-            </Button>
-          )}
-          {next && (
-            <Button icon="arrow-right" onClick={() => goTo(next.id)}>
-              Next: {next.label}
-            </Button>
-          )}
-        </div>
-      </section>
+            {showAllocationWarning && (
+              <AllocationWarning allocation={plan.allocation} onFix={() => goTo('allocate')} />
+            )}
+
+            <div className="goals-stage__panels">
+              {stageId === 'setup' && (
+                <>
+                  <BudgetSetup plan={plan} dispatch={dispatch} tracked={tracked} />
+                  <PersonalBudget plan={plan} />
+                </>
+              )}
+              {stageId === 'allocate' && (
+                <>
+                  <BudgetAllocation plan={plan} dispatch={dispatch} />
+                  <TradeoffPriorities plan={plan} dispatch={dispatch} />
+                </>
+              )}
+              {stageId === 'plan' && (
+                <>
+                  <MonthlyPlan plan={plan} currentMonth={currentMonth} />
+                  <ReductionOpportunities plan={plan} dispatch={dispatch} />
+                </>
+              )}
+              {stageId === 'track' && (
+                <>
+                  <GoalProgress plan={plan} tracked={tracked} currentMonth={currentMonth} />
+                  <BudgetAdjustmentForm
+                    plan={plan}
+                    dispatch={dispatch}
+                    onApplied={setSelectedAdjustmentId}
+                  />
+                  <AdjustmentDetails
+                    plan={plan}
+                    selectedId={selectedAdjustmentId}
+                    onSelect={setSelectedAdjustmentId}
+                  />
+                </>
+              )}
+              {stageId === 'summary' && (
+                <BudgetSummary
+                  plan={plan}
+                  dispatch={dispatch}
+                  onEdit={goTo}
+                  currentMonth={currentMonth}
+                />
+              )}
+            </div>
+
+            <div className="goals-stage__nav">
+              {previous && (
+                <Button variant="secondary" onClick={() => goTo(previous.id)}>
+                  Back: {previous.label}
+                </Button>
+              )}
+              {next && (
+                <Button icon="arrow-right" onClick={() => goTo(next.id)}>
+                  Next: {next.label}
+                </Button>
+              )}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   )
 }

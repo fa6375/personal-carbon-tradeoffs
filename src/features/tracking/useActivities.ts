@@ -1,6 +1,8 @@
-
-import { useCallback, useEffect, useState } from 'react'
-import { activityRepository } from './activityRepository'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { DataError } from '../../lib/dataErrors'
+import { getFirebase } from '../../lib/firebase'
+import { useAuth } from '../auth/authContext'
+import { createFirestoreActivityRepository } from './firestoreActivityRepository'
 import type { Activity, ActivityInput } from './types'
 
 export type LoadStatus = 'loading' | 'ready' | 'error'
@@ -15,82 +17,92 @@ export interface ActivitiesState {
   remove: (id: string) => Promise<void>
 }
 
-const STORAGE_KEY = 'carbon-choices.tracking.activities.v1'
+/** How long to wait for the first answer from the database before showing an error. */
+const FIRST_LOAD_TIMEOUT_MS = 15000
 
-/** Loads activities and keeps the list in sync after changes. */
+interface Loaded {
+  /** Which user and attempt this result belongs to. */
+  key: string
+  status: 'ready' | 'error'
+  activities: Activity[]
+  error: string | null
+}
+
+/**
+ * Loads the signed-in user's activities from Cloud Firestore and keeps them
+ * up to date. The live listener also picks up changes made in other tabs or
+ * on other devices (this replaces the earlier localStorage "storage" event).
+ */
 export function useActivities(): ActivitiesState {
-  const [status, setStatus] = useState<LoadStatus>('loading')
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
+  const uid = user?.uid ?? null
   const [attempt, setAttempt] = useState(0)
+  const [loaded, setLoaded] = useState<Loaded | null>(null)
+  const key = `${uid}:${attempt}`
+
+  const repository = useMemo(() => {
+    const firebase = getFirebase()
+    return firebase && uid ? createFirestoreActivityRepository(firebase.db, uid) : null
+  }, [uid])
 
   useEffect(() => {
-    let cancelled = false
-
-    activityRepository
-      .list()
-      .then((list) => {
-        if (cancelled) return
-        setActivities(list)
-        setError(null)
-        setStatus('ready')
-      })
-      .catch((reason: unknown) => {
-        if (cancelled) return
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : 'Activities could not be loaded.'
-        )
-        setStatus('error')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [attempt])
-
-  const reload = useCallback(() => {
-    setStatus('loading')
-    setError(null)
-    setAttempt((count) => count + 1)
-  }, [])
-
-  // Refresh tracking when activities change in another browser tab.
-  useEffect(() => {
-    function handleStorageChange(event: StorageEvent) {
-      if (event.key === STORAGE_KEY) {
-        reload()
-      }
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-    }
-  }, [reload])
-
-  const create = useCallback(async (input: ActivityInput) => {
-    const created = await activityRepository.create(input)
-    setActivities((list) => [...list, created])
-    return created
-  }, [])
-
-  const update = useCallback(async (id: string, input: ActivityInput) => {
-    const updated = await activityRepository.update(id, input)
-    setActivities((list) =>
-      list.map((activity) => (activity.id === id ? updated : activity))
+    if (!repository) return
+    // Until the server has answered once, a cached (possibly empty) list could
+    // wrongly say "no activities", so it is not shown.
+    let confirmed = false
+    const timer = setTimeout(() => {
+      if (!confirmed) setLoaded({ key, status: 'error', activities: [], error: new DataError('unavailable').message })
+    }, FIRST_LOAD_TIMEOUT_MS)
+    const unsubscribe = repository.subscribe(
+      (activities, fromServer) => {
+        if (fromServer) confirmed = true
+        // Once confirmed, keep showing the list while offline (the cache is up to date).
+        if (confirmed) setLoaded({ key, status: 'ready', activities, error: null })
+      },
+      (error) => {
+        confirmed = true
+        // Keep what was already shown; just report the problem.
+        setLoaded((previous) => ({
+          key,
+          status: 'error',
+          activities: previous?.key === key ? previous.activities : [],
+          error: error.message,
+        }))
+      },
     )
-    return updated
-  }, [])
+    return () => {
+      clearTimeout(timer)
+      unsubscribe()
+    }
+  }, [repository, key])
 
-  const remove = useCallback(async (id: string) => {
-    await activityRepository.remove(id)
-    setActivities((list) =>
-      list.filter((activity) => activity.id !== id)
-    )
-  }, [])
+  const reload = useCallback(() => setAttempt((count) => count + 1), [])
 
-  return { status, activities, error, reload, create, update, remove }
+  const requireRepository = useCallback(() => {
+    if (!repository) throw new DataError(getFirebase() ? 'not-signed-in' : 'not-configured')
+    return repository
+  }, [repository])
+
+  const create = useCallback((input: ActivityInput) => requireRepository().create(input), [requireRepository])
+  const update = useCallback(
+    (id: string, input: ActivityInput) => requireRepository().update(id, input),
+    [requireRepository],
+  )
+  const remove = useCallback((id: string) => requireRepository().remove(id), [requireRepository])
+
+  if (!repository) {
+    const code = getFirebase() ? 'not-signed-in' : 'not-configured'
+    return { status: 'error', activities: [], error: new DataError(code).message, reload, create, update, remove }
+  }
+
+  const current = loaded?.key === key ? loaded : null
+  return {
+    status: current?.status ?? 'loading',
+    activities: current?.activities ?? [],
+    error: current?.error ?? null,
+    reload,
+    create,
+    update,
+    remove,
+  }
 }

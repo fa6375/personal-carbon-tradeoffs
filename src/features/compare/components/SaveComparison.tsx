@@ -2,11 +2,15 @@ import { useId, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/Button'
 import { ButtonLink } from '../../../components/ButtonLink'
 import { CRITERIA, priorityLabel } from '../criteria'
-import { comparisonRepository } from '../comparisonRepository'
+import { DataError } from '../../../lib/dataErrors'
+import { useComparisonRepository } from '../useComparisonRepository'
 import { formatDateTime, formatDuration, formatEuro, formatKg, formatPeople } from '../format'
 import { getTransportOption } from '../transportOptions'
 import type { ComparisonResult, SavedComparison } from '../types'
 import { Field, ModeName, Panel } from './CompareUi'
+import { AuthForm } from '../../auth/AuthForm'
+import { useAuth } from '../../auth/authContext'
+import '../../auth/auth.css'
 
 const NAME_MAX = 80
 
@@ -28,6 +32,8 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
   const inputRef = useRef<HTMLDivElement>(null)
   const id = useId()
   const now = new Date().toISOString()
+  const repository = useComparisonRepository()
+  const { status: authStatus } = useAuth()
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -40,7 +46,8 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
     setSaving(true)
     setSubmitError(null)
     try {
-      const created = await comparisonRepository.create({
+      if (!repository) throw new DataError('not-signed-in')
+      const created = await repository.create({
         name: trimmed,
         input: result.input,
         options: result.options.map(({ mode, emissionsKg, costEur, timeMinutes, overallScore }) => ({
@@ -69,8 +76,7 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
           <strong>Saved comparisons</strong>.
         </p>
         <p className="compare-muted">
-          It is stored in this browser only, so it is not available on other devices and is deleted if
-          you clear this site's data.
+          It is stored in your account, so it is available whenever you sign in, on any device.
         </p>
         <div className="compare-actions compare-actions--start">
           <ButtonLink href="#/saved" icon="arrow-right">
@@ -80,6 +86,21 @@ export function SaveComparison({ result, saved, onSaved, onBack }: SaveCompariso
             Back to results
           </Button>
         </div>
+      </div>
+    )
+  }
+
+  if (!repository) {
+    return (
+      <div className="auth-gate">
+        <p className="auth-gate__reason">
+          {authStatus === 'not-configured'
+            ? new DataError('not-configured').message
+            : authStatus === 'loading'
+              ? 'Checking your sign-in…'
+              : 'Sign in or create an account to save this comparison. Your results stay here while you do.'}
+        </p>
+        {authStatus === 'signed-out' && <AuthForm />}
       </div>
     )
   }
