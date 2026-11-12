@@ -10,6 +10,29 @@
 
 This report changes no application code, Firebase settings or rules.
 
+> **Status update, 2026-11-13.** The audit below describes `main` at `1d052bd`. Later commits on this branch (PR #9) fixed or documented the following. Everything marked done was checked in this session; the build, lint and test logs are in `docs/evidence/19a`–`19f`.
+>
+> | Audit item | Status now |
+> |---|---|
+> | Goals contrast 4.34:1 | **Fixed** (18d3363): hint uses `--color-text-muted`, measured 6.06:1; axe-core: 0 violations on every page and all 5 Goals steps |
+> | German tab overflow at 320 px | **Fixed** (18d3363): no horizontal overflow at 320, 375 and 640 px in en, hr and de |
+> | Croatian month case | **Fixed** (5cffb49): genitive month names (`formatMonthGenitive`) and rewritten hr strings |
+> | `Intl.Collator` for sorting | **Done** (5cffb49): Breakdown table ties sorted with the locale's collation |
+> | Per-user locale preference | **Done** (f04557a): `users/{uid}.locale` (en/hr/de), validated in `firestore.rules`, rules deployed to `personal-carbon-tradeoff` (rules only) |
+> | Non-Latin script test | **Done** (1d9b96b): Croatian, Cyrillic and Arabic text stored and read back in the emulator tests |
+> | Seed / demo data | **Done** (7e47321): `npm run demo` seeds a fictional account into the **emulator only**; it refuses to run against a real project. Nothing was written to the real project |
+> | ERD and architecture diagram | **Done**: `docs/diagrams/` (Python source, SVG and PNG) |
+> | README corrections | **Done**: team roles, Java 21+, testing libraries, demo section, attribution section, corrected accessibility claims |
+> | Custom i18n module (brief §2.1) | **Not migrated.** A library migration of 903 keys × 3 locales two days before the deadline was judged too risky. Documented as a deviation in the README and Part B §6.2; issue #14 |
+> | Ten-minute accessibility check | **Items 1–8 and 10 done** in the real browser. **Item 9 (screen reader) is PENDING**: issue #10 |
+> | 200% browser zoom, reduced motion | Approximated with a 640 px viewport; real browser zoom and OS reduced-motion checks are **PENDING**: issues #11, #12 |
+> | Native-speaker review (hr, de) | **PENDING**: issue #13 |
+> | GitHub Issues | **Done**: #10–#17 |
+> | Part B report | **Drafted**: `docs/Team02_UX_Deliverable2.docx` and `.pdf`. Fields that need a team member's own confirmation (team and topic number, weekly log W1–W3, §11 statements, AI declarations of Martin and Lazar, signatures, screen-reader result) are marked **PENDING** |
+> | Release tag `v1.0-deliverable2` | **PENDING** until PR #9 is approved and merged: issue #17 |
+> | Bundle size, password reset | Open: issues #15, #16 |
+> | Weekly history W1–W3, empty review comments | **Cannot be fixed.** Explained honestly in Part B §8.5 and §9; no history was rewritten |
+
 ---
 
 ## A. Executive summary
