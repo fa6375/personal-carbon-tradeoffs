@@ -148,6 +148,7 @@ export const compare: MessageShape<typeof en> = {
       passengersHint: '1–{max}. Rezultati su prikazani po osobi.',
       tooFar: {
         one: 'Mogućnost {options} nije praktična za većinu ljudi na ovoj udaljenosti. Ipak je izračunata kako biste vidjeli kompromis.',
+        few: 'Mogućnosti {options} nisu praktične za većinu ljudi na ovoj udaljenosti. Ipak su izračunate kako biste vidjeli kompromis.',
         other: 'Mogućnosti {options} nisu praktične za većinu ljudi na ovoj udaljenosti. Ipak su izračunate kako biste vidjeli kompromis.',
       },
       back: 'Natrag',

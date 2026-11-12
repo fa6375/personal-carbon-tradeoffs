@@ -68,7 +68,7 @@ export function ShareBar({ label, share, valueText, category }: ShareBarProps) {
   return (
     <div className="tracking-bar">
       <div className="tracking-bar__label">
-        <span>{label ?? t('tracking.loading')}</span>
+        <span>{label}</span>
         <span className="tracking-bar__value">{valueText}</span>
       </div>
       <div
@@ -105,7 +105,7 @@ export function LoadingState({ label }: { label?: string }) {
   return (
     <div className="tracking-loading" role="status">
       <span className="tracking-loading__spinner" aria-hidden="true" />
-      <span>{label}</span>
+      <span>{label ?? t('tracking.loading')}</span>
     </div>
   )
 }
