@@ -29,3 +29,4 @@ export type IconName =
   | 'bus'
   | 'train'
   | 'star'
+  | 'user'

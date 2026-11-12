@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Button } from '../../../components/Button'
+import { RouteDistanceLookup } from '../../routing/RouteDistanceLookup'
 import {
   ENERGY_FACTORS,
   FOOD_FACTORS,
@@ -103,6 +104,10 @@ export function ActivityForm({ initialValues, submitLabel, onSubmit, onCancel }:
             value={values.distanceKm}
             error={errors.distanceKm}
             onChange={(value) => set('distanceKm', value)}
+          />
+          <RouteDistanceLookup
+            preferred={values.mode === 'walk' ? 'walking' : values.mode === 'bicycle' ? 'cycling' : 'driving'}
+            onUse={(km) => set('distanceKm', String(km))}
           />
           {sharedVehicle && (
             <NumberField

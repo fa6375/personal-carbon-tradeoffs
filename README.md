@@ -2,7 +2,7 @@
 
 Carbon Choices is a mobile-first web application that helps people understand and manage the environmental impact of their everyday decisions. It brings three feature areas together in one product: comparing everyday choices, setting carbon reduction goals and tracking personal carbon emissions. It implements the **Personal Carbon Trade-Offs** topic for **ISTE.260 – Designing the User Experience**, Deliverable 2.
 
-> **Status:** early development. All three feature areas are integrated in one app. Compare Everyday Choices and Personal Carbon Tracking work with illustrative estimates and data stored temporarily in the browser; Carbon Reduction Goals & Recommendations builds on the emissions recorded in Carbon tracking (with labelled sample values when nothing is recorded) and keeps the plan in memory only. The database, the external API integration and localisation are not implemented yet. See [Current Development Status](#current-development-status).
+> **Status:** early development. All three feature areas are integrated in one app with **Firebase Authentication** (email and password) and **Cloud Firestore** as the shared database: activities, saved comparisons and carbon plans are stored per user and survive a reload. Journey distances can be looked up with **OpenStreetMap** (Nominatim + OSRM). Emission, cost and time figures are illustrative estimates. Localisation is not implemented yet. See [Current Development Status](#current-development-status).
 
 ---
 
@@ -15,8 +15,13 @@ Carbon Choices is a mobile-first web application that helps people understand an
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
+- [Architecture](#architecture)
+- [Firebase Setup](#firebase-setup)
 - [Database](#database)
+- [Security Rules](#security-rules)
+- [Importing Data Saved in the Browser](#importing-data-saved-in-the-browser)
 - [External API](#external-api)
+- [Testing](#testing)
 - [Internationalization](#internationalization)
 - [Accessibility](#accessibility)
 - [Development Workflow](#development-workflow)
@@ -83,10 +88,10 @@ The feature is at `#/compare` ("Compare journeys" in the navigation), with saved
 | Detailed breakdown: each formula with the actual numbers, the assumptions per option and the scoring table | ✅ |
 | Recommendation calculated from the scores and priorities, with reasons, trade-offs and the next best option | ✅ |
 | Alternative scenario: change distance, people, options and priorities, see the result recalculated live next to the current one, then apply or discard | ✅ |
-| Saving a comparison (name, date, options, journey, priorities, results and recommendation), listing, reopening and deleting with confirmation | ✅ Stored in this browser's `localStorage` |
+| Saving a comparison (name, date, options, journey, priorities, results and recommendation), listing, reopening and deleting with confirmation | ✅ Stored in Cloud Firestore (`users/{uid}/comparisons`); saving asks the user to sign in |
 | Loading, empty, success and error states | ✅ |
-| Saving comparisons in the project database | 📋 Planned — see [Database](#database) |
-| Real routes, distances, fares or travel times from an external API | 📋 Planned — the user enters the distance; nothing is looked up |
+| Looking up the journey distance (car, bike, on foot) with OpenStreetMap | ✅ Optional; typing the distance always works — see [External API](#external-api) |
+| Real fares, timetables or traffic-based travel times | 📋 Not planned for now — cost and time stay illustrative |
 
 > **How the comparison is calculated** (`src/features/compare/calculate.ts` and `transportOptions.ts`). All results are **per person**:
 >
@@ -140,7 +145,7 @@ Goals only *reads* Tracking data through Tracking's existing `useActivities` hoo
 
 #### Data storage
 
-The plan (goal, allocation, priorities, chosen ideas, adjustments) and the current step are kept **in memory** in a small store (`goalPlanStore.ts`). They are kept while the user visits other pages such as Compare or Carbon tracking, but are **lost when the page is reloaded** or the tab is closed. Nothing is written to `localStorage` or a database. Saving plans in the project database is planned for when the team's shared backend exists.
+The plan (goal, budget settings, allocation, priorities, chosen ideas and adjustment history) is stored in Cloud Firestore as one document per user, `users/{uid}/goalPlans/current` (`goalPlanRepository.ts`). `goalPlanSync.ts` loads it into the existing in-memory store (`goalPlanStore.ts`) when the user signs in and saves every change automatically a moment later; a status line on the Goals page says whether changes are saved, and offers "Try saving again" and "Delete saved plan" (with confirmation). If the plan cannot be loaded, the page shows an error with "Try again" instead of a default plan. Goal progress is not stored: it is calculated from the activities in Carbon tracking. The current step is kept in memory only.
 
 | Functionality | Status |
 |---|---|
@@ -154,8 +159,8 @@ The plan (goal, allocation, priorities, chosen ideas, adjustments) and the curre
 | Budget adjustment: move between categories or change the goal, with validation | ✅ |
 | Budget adjustment details with before/after values | ✅ |
 | Carbon budget summary with links back to each step and to Tracking and Compare | ✅ |
-| Plan kept while moving between pages | ✅ In memory only |
-| Saving plans and adjustments in the database (create, read, update, delete) | 📋 Planned — the plan is lost on reload |
+| Plan kept while moving between pages | ✅ |
+| Saving the plan and adjustments in the database (create, read, update, delete) | ✅ Cloud Firestore, saved automatically |
 | Step within Carbon goals in the URL | 📋 Planned — reloading returns to step 1 |
 | Emission data or recommendations from an external API | 📋 Planned |
 
@@ -189,7 +194,8 @@ The feature is at `#/tracking` ("Carbon tracking" in the navigation). It impleme
 | Dashboard: emissions this month, daily average, last 7 days, largest source, this month by category, recent activities | ✅ Updates when activities change |
 | Emissions breakdown by category and by source for the last 7 days, last 30 days, this month or all time | ✅ Updates when activities change |
 | Loading, error (with "Try again") and empty states | ✅ |
-| Saving activities in the project database | 📋 Planned — activities are kept in this browser's `localStorage` for now (see [Database](#database)) |
+| Saving activities in the project database | ✅ Cloud Firestore (`users/{uid}/activities`), with live updates across tabs and devices |
+| Looking up a trip's distance with OpenStreetMap on the transport form | ✅ Optional |
 | Emission factors from an external API or verified dataset | 📋 Planned — illustrative factors for now (see below) |
 | Sharing tracked emissions with Carbon goals as the real baseline | ✅ Read by Carbon goals for its baseline and progress (no change to Tracking) |
 
@@ -205,9 +211,11 @@ The feature is at `#/tracking` ("Carbon tracking" in the navigation). It impleme
 | Reusable UI components and design tokens | ✅ |
 | Navigation entry for Goals (`#/goals`) | ✅ |
 | Navigation entry for Tracking (`#/tracking`) | ✅ |
+| Account page (`#/account`): sign in, create an account, sign out, import browser data | ✅ |
+| Sign-in required for Carbon tracking, Carbon goals and Saved comparisons | ✅ Home and Compare work without an account; saving a comparison asks to sign in |
 | Settings (including language selection) | 📋 (placeholder page at `#/settings`) |
 
-> Navigation currently contains Home, Compare journeys, Saved comparisons, Carbon goals, Carbon tracking and Settings.
+> Navigation currently contains Home, Compare journeys, Saved comparisons, Carbon goals, Carbon tracking, Account and Settings.
 
 ---
 
@@ -216,8 +224,8 @@ The feature is at `#/tracking` ("Carbon tracking" in the navigation). It impleme
 | Name | GitHub | Feature area |
 |---|---|---|
 | Faraj Aliyev | [@fa6375](https://github.com/fa6375) | Compare Everyday Choices |
-| Martin Mudrinic | _to be added_ | Carbon Reduction Goals & Recommendations |
-| Lazar Jovovic | _to be added_ | Personal Carbon Tracking |
+| Martin Mudrinic | [@martinmudrinic](https://github.com/martinmudrinic) | Carbon Reduction Goals & Recommendations |
+| Lazar Jovovic | [@lj7829](https://github.com/lj7829) | Personal Carbon Tracking |
 
 ---
 
@@ -236,12 +244,16 @@ Versions are taken from `package.json` and the installed `node_modules`.
 | [typescript-eslint](https://typescript-eslint.io/) | 8.72.2 | TypeScript rules for ESLint |
 | eslint-plugin-react-hooks / eslint-plugin-react-refresh | see `package.json` | React-specific lint rules |
 | Plain CSS with custom properties | — | Styling (no UI or CSS framework) |
+| [Firebase JS SDK](https://firebase.google.com/docs/web/setup) (modular) | 12.19.0 | Authentication and Cloud Firestore |
+| [Vitest](https://vitest.dev/) | 4.1.12 | Unit and integration tests |
+| [@firebase/rules-unit-testing](https://firebase.google.com/docs/rules/unit-tests) | 5.0.2 | Security Rules tests |
+| [firebase-tools](https://github.com/firebase/firebase-tools) | 15.36.0 | Local emulators and deploying rules (dev dependency, run with `npx firebase` or the npm scripts) |
 
 Notes:
 
-- There is **no router library**. Navigation uses a small hash-based router in `src/hooks/useHashRoute.ts` (routes: `#/`, `#/compare`, `#/saved`, `#/goals`, `#/tracking`, `#/settings`).
-- There is **no backend, database, i18n library or test framework** installed yet.
-- Personal Carbon Tracking and Compare Everyday Choices added **no new dependencies**.
+- There is **no router library**. Navigation uses a small hash-based router in `src/hooks/useHashRoute.ts` (routes: `#/`, `#/compare`, `#/saved`, `#/goals`, `#/tracking`, `#/account`, `#/settings`).
+- There is **no custom backend server**: the browser talks to Firebase directly, and Firestore Security Rules enforce who may read and write what. No i18n library is installed yet.
+- `package.json` pins `@firebase/app` and `@firebase/app-compat` through `overrides`. Without it npm installed two copies of `@firebase/app`, and Firebase Auth and Firestore failed with "Component … has not been registered".
 - The router ignores a query part in the hash, so `#/compare?saved=<id>` opens the Compare page with a saved comparison (used by Saved comparisons). The address is reset to `#/compare` once it has opened.
 
 ### Prerequisites
@@ -278,12 +290,17 @@ personal-carbon-tradeoffs/
 │   │   ├── homeContent.ts     #   Text for the home dashboard
 │   │   └── navigation.ts      #   Navigation items and route mapping
 │   ├── features/              # Feature-specific code, one folder per feature area
+│   │   └── account/           #   Shared: import of data saved in the browser (localImport.ts, LocalImportPanel.tsx)
+│   │   └── auth/              #   Shared: Firebase Auth service, AuthProvider, sign-in form, RequireAuth gate
+│   │   └── routing/           #   Shared: OpenStreetMap distance lookup (routeService.ts, RouteDistanceLookup.tsx)
 │   │   └── compare/           #   Compare Everyday Choices (Faraj)
 │   │       ├── components/    #     One component per screen, plus CompareUi.tsx, ModePicker.tsx, PriorityFields.tsx
 │   │       ├── calculate.ts   #     CO₂/cost/time estimates, scoring and recommendation
 │   │       ├── transportOptions.ts # ILLUSTRATIVE cost, speed and overhead per option (CO₂ factors from tracking)
 │   │       ├── criteria.ts    #     The three criteria and priority levels
-│   │       ├── comparisonRepository.ts # Saved comparisons (TEMPORARY localStorage implementation)
+│   │       ├── comparisonRepository.ts # Repository interface; old localStorage reader kept for the import
+│   │       ├── firestoreComparisonRepository.ts # Saved comparisons in Firestore
+│   │       ├── useComparisonRepository.ts # The signed-in user's repository
 │   │       ├── useSavedComparisons.ts # Loading/error state and delete for the saved list
 │   │       ├── validation.ts  #     Journey form values and validation
 │   │       ├── format.ts      #     kg CO₂e, EUR, duration, date and plural formatting (Intl, English)
@@ -294,7 +311,9 @@ personal-carbon-tradeoffs/
 │   │       ├── budget.ts      #     Budget arithmetic, monthly targets, savings, ranking, pace
 │   │       ├── format.ts      #     kg CO₂e, month and plural formatting (Intl, English)
 │   │       ├── goalPlanReducer.ts # Pure state changes for the plan, including adjustments
-│   │       ├── goalPlanStore.ts #   In-memory store: keeps the plan between pages, lost on reload
+│   │       ├── goalPlanStore.ts #   In-memory store for the plan and current step
+│   │       ├── goalPlanRepository.ts # The plan in Firestore (users/{uid}/goalPlans/current)
+│   │       ├── goalPlanSync.ts #    Loads the plan on sign-in and saves changes automatically
 │   │       ├── trackedEmissions.ts # Read-only summary of Carbon tracking activities
 │   │       ├── sampleData.ts  #     Categories, priorities, example ideas and TEMPORARY sample values
 │   │       ├── stages.ts      #     The five steps and the screens they contain
@@ -302,8 +321,9 @@ personal-carbon-tradeoffs/
 │   │       └── goals.css      #     Styles for the feature
 │   │   └── tracking/          #   Personal Carbon Tracking (Lazar)
 │   │       ├── components/    #     One component per screen, plus TrackingUi.tsx building blocks
-│   │       ├── activityRepository.ts # Data-access layer (TEMPORARY localStorage implementation)
-│   │       ├── useActivities.ts #   Loading/error state and create/update/delete for screens
+│   │       ├── activityRepository.ts # Repository interface; old localStorage reader kept for the import
+│   │       ├── firestoreActivityRepository.ts # Activities in Firestore, with a live listener
+│   │       ├── useActivities.ts #   Live list, loading/error state and create/update/delete for screens
 │   │       ├── emissionFactors.ts # ILLUSTRATIVE emission factors and the calculation method
 │   │       ├── stats.ts       #     Totals, periods and groupings for dashboard/breakdown
 │   │       ├── validation.ts  #     Form values, validation and conversion to activities
@@ -311,6 +331,11 @@ personal-carbon-tradeoffs/
 │   │       ├── categoryIcons.ts #   Icon for each activity category
 │   │       ├── types.ts       #     TypeScript types for the feature
 │   │       └── tracking.css   #     Styles for the feature
+│   ├── lib/
+│   │   ├── firebase.ts        # The single Firebase initialisation (from VITE_FIREBASE_* variables)
+│   │   ├── dataErrors.ts      # DataError with stable codes, Firestore error mapping, timeouts
+│   │   ├── errorMessages.ts   # English text for every data error code (translate here)
+│   │   └── firestoreValues.ts # Timestamp helpers
 │   ├── hooks/
 │   │   └── useHashRoute.ts    # Minimal hash-based routing
 │   ├── layouts/
@@ -321,6 +346,7 @@ personal-carbon-tradeoffs/
 │   │   ├── SavedPage.tsx      #   Saved comparisons list
 │   │   ├── GoalsPage.tsx      #   Carbon goals: step navigation and the Goals screens
 │   │   ├── TrackingPage.tsx   #   Carbon tracking: tabs and the Tracking screens
+│   │   ├── AccountPage.tsx    #   Sign in / create account / sign out / import
 │   │   ├── SettingsPage.tsx   #   Placeholder
 │   │   ├── NotFoundPage.tsx
 │   │   └── PlaceholderPage.tsx #   Shared template for unbuilt sections
@@ -331,6 +357,14 @@ personal-carbon-tradeoffs/
 │   ├── types/                 # Shared TypeScript types
 │   ├── App.tsx                # Chooses the page for the current route
 │   └── main.tsx               # Application entry point
+├── tests/emulator/            # Rules and repository tests that run against the Firebase emulators
+├── firestore.rules            # Cloud Firestore Security Rules
+├── firestore.indexes.json     # Firestore indexes (none needed yet)
+├── firebase.json              # Firebase CLI config: rules file and emulator ports
+├── .firebaserc                # Default Firebase project: personal-carbon-tradeoff
+├── .env.example               # Environment variables to copy into .env.local
+├── vitest.config.ts           # Unit tests
+├── vitest.emulator.config.ts  # Emulator tests
 ├── index.html                 # HTML entry point
 ├── eslint.config.js           # ESLint configuration
 ├── vite.config.ts             # Vite configuration
@@ -367,7 +401,17 @@ cd personal-carbon-tradeoffs
 npm install
 ```
 
-### 3. Start the development server
+### 3. Configure Firebase
+
+Copy `.env.example` to `.env.local` and fill in the Firebase web app config (see [Firebase Setup](#firebase-setup)):
+
+```bash
+cp .env.example .env.local
+```
+
+Without `.env.local` the app still runs, but Carbon tracking, Carbon goals, Saved comparisons and Account show "Database not configured". To work without the real project, use the local emulators instead (see [Testing](#testing)).
+
+### 4. Start the development server
 
 ```bash
 npm run dev
@@ -375,7 +419,7 @@ npm run dev
 
 Vite prints the local address, by default <http://localhost:5173>.
 
-### 4. Build for production
+### 5. Build for production
 
 ```bash
 npm run build
@@ -387,7 +431,7 @@ This type-checks the project (`tsc -b`) and writes the production build to `dist
 npm run preview
 ```
 
-### 5. Run ESLint
+### 6. Run ESLint
 
 ```bash
 npm run lint
@@ -401,55 +445,176 @@ npm run lint
 | `npm run build` | `tsc -b && vite build` | Type-check and create a production build in `dist/` |
 | `npm run preview` | `vite preview` | Serve the production build locally |
 | `npm run lint` | `eslint .` | Lint all TypeScript and TSX files |
+| `npm test` | `vitest run` | Unit tests (no network, no Firebase) |
+| `npm run test:emulator` | `firebase emulators:exec … vitest run --config vitest.emulator.config.ts` | Starts the Auth and Firestore emulators, runs the rules and repository tests, stops the emulators (needs Java) |
+| `npm run emulators` | `firebase emulators:start --only auth,firestore …` | Runs the emulators for manual testing with `VITE_FIREBASE_USE_EMULATOR=true` |
+| `npm run test:live` | `vitest run --config vitest.live.config.ts` | 7 tests against the **real** project from `.env.local`: creates two throw-away accounts, checks Auth, CRUD for all three features and the deployed rules, then deletes everything it created |
+| `npm run deploy:rules` | `firebase deploy --only firestore:rules --project personal-carbon-tradeoff` | Publishes **only** `firestore.rules` to the real project's `(default)` database (needs `npx firebase login` first) |
 
 ---
 
 ## Environment Variables
 
-**No environment variables are required at the moment.** The application currently runs entirely in the browser and does not connect to any backend, database or external service.
+Copy `.env.example` to `.env.local`. Vite reads `.env.local` automatically, and Git ignores it (`.gitignore` ignores `*.local`, `.env` and `.env.*`, except `.env.example`).
 
-Environment variables will be needed once the backend, database and external API are integrated (for example, a database connection string or an API key). When that happens:
+| Variable | Required | Purpose |
+|---|---|---|
+| `VITE_FIREBASE_API_KEY` | Yes | Firebase web app config |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Yes | Firebase web app config, e.g. `personal-carbon-tradeoff.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID` | Yes | `personal-carbon-tradeoff` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | No | Firebase web app config (storage is not used) |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | No | Firebase web app config |
+| `VITE_FIREBASE_APP_ID` | Yes | Firebase web app config |
+| `VITE_FIREBASE_USE_EMULATOR` | No | `true` connects to the local Auth (9099) and Firestore (8080) emulators instead of the real project |
+| `VITE_FIREBASE_EMULATOR_HOST` | No | Emulator host, default `127.0.0.1` |
+| `VITE_GEOCODER_URL` | No | Nominatim-compatible geocoder, default `https://nominatim.openstreetmap.org` |
+| `VITE_ROUTER_URL` | No | OSRM server laid out like routing.openstreetmap.de (`/routed-car`, `/routed-bike`, `/routed-foot`), default `https://routing.openstreetmap.de` |
+| `VITE_NOMINATIM_EMAIL` | No | Contact email sent to Nominatim, as its usage policy recommends |
 
-- they will be documented in this section;
-- a `.env.example` file with empty values will be committed;
-- real values will only be kept in local `.env` files, which are excluded from Git (`*.local` is already listed in `.gitignore`; the `.env` pattern will be added when needed).
+The Firebase web config is **not a secret**: it identifies the project to the browser, and every visitor's browser receives it. Access to data is protected by Firebase Authentication and the [Security Rules](#security-rules). Even so, the real values are kept out of Git, so each developer chooses which project they point at. Service-account keys and other server credentials must **never** be added to this repository or to any `VITE_` variable, because everything in a `VITE_` variable ends up in the browser bundle. The app needs none.
 
-API keys, passwords, tokens and other secrets must **never** be committed to the repository.
+---
+
+## Architecture
+
+```text
+Browser (React + Vite)
+ ├── src/lib/firebase.ts ─── one Firebase app ──► Firebase Authentication (email + password)
+ │                                            └─► Cloud Firestore  (protected by firestore.rules)
+ ├── AuthProvider ── current user (uid) ──► every repository works only under users/{uid}
+ ├── Repositories (one per feature, same interfaces the screens already used)
+ │     tracking/firestoreActivityRepository.ts   users/{uid}/activities
+ │     compare/firestoreComparisonRepository.ts  users/{uid}/comparisons
+ │     goals/goalPlanRepository.ts + goalPlanSync users/{uid}/goalPlans/current
+ └── routing/routeService.ts ──► Nominatim (places) + OSRM (route distances), public OpenStreetMap services
+```
+
+- **No custom backend.** The app is a static site. Firebase Authentication identifies the user, and Firestore Security Rules decide what each user may read and write, so no server code is needed. The external API needs no secret key, so it is called from the browser too (see [External API](#external-api)). Cloud Functions, which need the paid Blaze plan, are not used.
+- **Same interfaces, new storage.** The screens still use the repository interfaces from Deliverable 1 (`ActivityRepository`, `ComparisonRepository`), now implemented with Firestore, so the screens and calculations did not have to change. `useActivities` keeps its old return shape, so Carbon goals still reads Tracking data exactly as before.
+- **Structured errors.** Data code throws `DataError` with a stable code (`not-signed-in`, `permission-denied`, `unavailable`, `timeout`, `not-found`, `invalid-data`, `quota-exceeded`, …). Auth uses `AuthError` codes, and the route service uses `RouteError` codes. The English text for each code lives in one file per area (`src/lib/errorMessages.ts`, `src/features/auth/authMessages.ts`, `src/features/routing/routeMessages.ts`), ready to be translated.
+- **Shared calculations.** There is one set of emission factors, in `src/features/tracking/emissionFactors.ts`. Compare (`compare/transportOptions.ts`) and Goals (`goals/sampleData.ts`) both read it, and a unit test checks that Compare and Tracking give the same CO₂ for the same trip. The factors are illustrative rounded averages, not a verified dataset (see each feature's section).
+
+---
+
+## Firebase Setup
+
+The team uses the existing Firebase project **`personal-carbon-tradeoff`** with the web app **Carbon Choices Web**. Do not create a new project.
+
+1. **Get the web config.** In the [Firebase console](https://console.firebase.google.com/) → `personal-carbon-tradeoff` → ⚙ Project settings → General → Your apps → *Carbon Choices Web* → SDK setup and configuration → Config. Copy each value into `.env.local` (see [Environment Variables](#environment-variables)). `measurementId` is not needed: the app does not use Google Analytics.
+2. **Authentication.** Build → Authentication → Sign-in method: **Email/Password** must be enabled (it is). Users register in the app on the Account page or on any page that needs an account. Email verification and password reset are not implemented.
+3. **Firestore.** Build → Firestore Database. The database already exists. Publish the rules from this repository (it must not stay in test mode):
+
+   ```bash
+   npx firebase login
+   ```
+
+   ```bash
+   npm run deploy:rules
+   ```
+
+   This publishes only `firestore.rules` to the `(default)` Firestore database of `personal-carbon-tradeoff` (set in `.firebaserc` and in the script); nothing else in the project is changed. Check the target project in the command output. No composite indexes are needed (every query orders a single collection by one field), so `firestore.indexes.json` is empty and is not deployed by this script.
+
+   **Status:** the rules in this repository were deployed to `personal-carbon-tradeoff` on 2026-11-12 ("released rules firestore.rules to cloud.firestore"). Deploy again whenever `firestore.rules` changes.
+4. **Run the app** with `npm run dev`, create an account on the Account page, and add an activity. It appears in Firestore under `users/<your uid>/activities`.
 
 ---
 
 ## Database
 
-Persistent storage in the application's own database is a requirement of Deliverable 2: data created by the user must survive a restart, and the main entities must support create, read, update and delete from the interface.
+The single shared database is **Cloud Firestore** in `personal-carbon-tradeoff`. All user data lives under the user's own document, so ownership is part of the path and one rule protects all of it:
 
-**Current state:** no database has been chosen or implemented. The carbon plan in the Goals feature is held in memory only (`src/features/goals/goalPlanStore.ts`): it is kept while moving between pages but resets when the page is reloaded.
+```text
+users/{uid}                                   profile
+users/{uid}/activities/{activityId}           Personal Carbon Tracking
+users/{uid}/comparisons/{comparisonId}        Compare Everyday Choices (saved comparisons)
+users/{uid}/goalPlans/current                 Carbon Reduction Goals (the user's plan)
+```
 
-Personal Carbon Tracking reads and writes activities only through the `ActivityRepository` interface in `src/features/tracking/activityRepository.ts`. Its current implementation is a **temporary stand-in**: activities are saved in the browser's `localStorage` under the key `carbon-choices.tracking.activities.v1`. This means:
+| Document | Fields |
+|---|---|
+| `users/{uid}` | `email`, `createdAt`, `updatedAt`. Created the first time the user signs in. |
+| `activities/{id}` | `date` (`"YYYY-MM-DD"`, the user's local day), `note` (≤ 120 characters), `details` (one of: `{category: "transport", mode, distanceKm, passengers}`, `{category: "food", item, servings}`, `{category: "home", source, kwh, householdSize}`), `createdAt`, `updatedAt`, optional `importedFrom: "localStorage"` |
+| `comparisons/{id}` | `name`, `input` (`modes`, `journey` {`from`, `to`, `distanceKm`, `passengers`}, `priorities` {`emissions`, `cost`, `time`} 0–3), `options` (snapshot of each option's `emissionsKg`, `costEur`, `timeMinutes`, `overallScore`), `recommended`, `createdAt`, `updatedAt`, optional `importedFrom` |
+| `goalPlans/current` | `baseline` {`source`, `amounts` per category, optional `takenAt`}, `reductionPercent`, `durationMonths`, `startMonth` (`"YYYY-MM"`), `allocation` (percent per category), `priorities` (ordered), `selectedOpportunityIds`, `adjustments` (history, newest first), `schemaVersion` (1), `createdAt`, `updatedAt` |
 
-- activities survive a page reload, but only in that browser on that device;
-- clearing site data deletes them, and they are not shared between users or devices;
-- this does **not** meet the brief's database requirement.
+Why this structure:
 
-Compare Everyday Choices works the same way: saved comparisons go only through the `ComparisonRepository` interface in `src/features/compare/comparisonRepository.ts`, whose current implementation stores them in `localStorage` under `carbon-choices.compare.comparisons.v1`, with the same limitations. The data model is `SavedComparison` in `src/features/compare/types.ts`: id, name, saved date, the input (options, journey and priorities) and a snapshot of the results and recommendation. The comparison currently being worked on is held in memory only.
+- **Ownership by path.** A user can only reach `users/{their uid}/…`, which keeps the rules short and easy to check. Every query reads one user's sub-collection, so no `userId` field or extra index is needed.
+- **Emissions are calculated, not stored.** An activity stores what the user entered. Its emissions, the dashboard totals, the breakdown and the goal progress are calculated from it with the shared factors, so changing a factor never leaves stale numbers in the database.
+- **One plan document.** The goal, budget, allocation, priorities and adjustments are always read and changed together, and the adjustment history stays small (the rules allow at most 200 entries). Separate `goals`/`budgets` collections would split one object and duplicate data. Adjustments store their before/after values because they are a history.
+- **Saved comparisons are snapshots.** They keep their input, so the app recalculates them when opened, plus the results at the time of saving. They are not edited after saving.
+- **Timestamps** are Firestore server timestamps (UTC). The app shows them as ISO strings and formats them in the user's locale. `date` is the user's local calendar day, as before.
+- **Text** is stored as UTF-8, so Croatian characters (č, ć, ž, š, đ) work. This is covered by the tests.
 
-The data model the database will need for this feature is the `Activity` type in `src/features/tracking/types.ts`: an id, a date, an optional note, created/updated timestamps, and category-specific details (transport mode, distance and people; food item and servings; or energy source, kWh and household size). When the backend exists, an API-backed `ActivityRepository` can replace the local one without changing the screens.
+**Data access** is in one repository per feature. Reads use the server (`getDocFromServer`/`getDocsFromServer`), and Tracking's live listener ignores cache-only snapshots until the server has answered once. This way an offline device shows "The database cannot be reached" with **Try again** instead of a misleading empty list. Every call has a timeout (15 s), after which a `timeout` error is shown.
 
-When the database is implemented, this section will document:
+**Demo data:** there is no shared seed script, because data is private to each account. To try the app, create an account and add a few activities, or import data saved in the browser (see below). The emulator tests create realistic test data, including Croatian place names.
 
-- the chosen database engine and the reason for choosing it;
-- how to create the database;
-- how to run migrations (the schema will be kept in the repository);
-- how to load seed data for reviewers.
+---
+
+## Security Rules
+
+`firestore.rules` is in the repository and is published with `npm run deploy:rules`. The rules:
+
+- allow a signed-in user to read, create, update and delete **only** documents under `users/{their uid}`;
+- deny everything else, including listing `users` and any other top-level collection;
+- check the shape of every write: allowed fields only, known categories, modes, food items and energy sources, number ranges that match the app's validation (for example distance 0.1–20000 km, 1–9 people, note ≤ 120 characters, priorities 0–3 with at least one above 0, reduction 0–100%), `date` and `startMonth` formats, and list sizes;
+- require `createdAt` to stay the same and `updatedAt` to be the server time on every update. On create, timestamps may not be in the future, which allows imported records to keep their original dates;
+- allow only `goalPlans/current`, and do not allow saved comparisons to be edited after saving.
+
+There is no `allow read, write: if true` anywhere. The rules are covered by 10 automated tests (see [Testing](#testing)).
+
+---
+
+## Importing Data Saved in the Browser
+
+Before the database existed, Tracking and Compare saved data in the browser's `localStorage` (`carbon-choices.tracking.activities.v1`, `carbon-choices.compare.comparisons.v1`). The app no longer writes there, but it reads those keys to offer a one-time import (`src/features/account/localImport.ts`):
+
+1. After signing in, a box on Carbon tracking and Saved comparisons, and always on the Account page, shows how many activities and comparisons this browser holds.
+2. **Import into my account** copies them to Firestore. Each record keeps its id as the document id, and ids already in the account are skipped, so importing twice never creates duplicates. Batches of up to 450 writes are used.
+3. Nothing is deleted from the browser. A small marker (`carbon-choices.import.v1:<uid>`) remembers that this user has imported, so the box is not shown again on Tracking and Saved. The Account page still offers **Import again**.
+4. If the import fails, the error is shown, nothing is removed, and the user can try again. Damaged or unreadable local data is reported instead of being imported.
 
 ---
 
 ## External API
 
-Deliverable 2 requires integration with at least one external REST API whose data is genuinely related to the topic and does real work in the product (for example, providing emission factors, exchange rates or location data), not only decorative content. The integration must handle failure states such as network errors, timeouts, rate limits and empty results, and API keys must be kept out of client-side code.
+**Selected:** OpenStreetMap services for **journey distances**, in `src/features/routing/routeService.ts`:
 
-**Current state:** no external API has been selected or connected. The Goals feature uses the emissions recorded in Personal Carbon Tracking and calculates the savings of its example ideas with Tracking's emission factors; when nothing is recorded it shows labelled sample values from `src/features/goals/sampleData.ts`. Personal Carbon Tracking calculates emission estimates from illustrative factors in `src/features/tracking/emissionFactors.ts`; an emission-factor API (for example Climatiq or Carbon Interface, both listed in the course brief) is a candidate for replacing them. Compare Everyday Choices reuses those factors and calculates cost and travel time from illustrative assumptions in `src/features/compare/transportOptions.ts`; the user enters the distance, because no route or fare service is connected.
+| Service | Used for | Request |
+|---|---|---|
+| [Nominatim](https://nominatim.org/release-docs/latest/api/Search/) (`nominatim.openstreetmap.org`) | Turning the typed start and destination into coordinates | `GET /search?q=…&format=jsonv2&limit=1` |
+| [OSRM](https://project-osrm.org/docs/v5.24.0/api/) on the FOSSGIS servers (`routing.openstreetmap.de`) | Driving, cycling and walking route distance | `GET /routed-car|routed-bike|routed-foot/route/v1/driving/{lon},{lat};{lon},{lat}?overview=false` |
 
-When an API is integrated, this section will document which service is used, what it is used for, and how to obtain a key if one is required.
+**Why this API:** both Compare and Tracking asked the user to type a distance they often do not know. The distance drives every CO₂, cost and time figure, so a real route distance makes the results more meaningful. In **Compare** (Enter journey screen), "Look up distance" uses the start and destination already typed. In **Tracking** (transport form), there is a small optional From/To lookup. Both show which places were found, so the user can check them, and the car, bike and walking distances. The user chooses which distance to use, and typing a distance always remains possible. Route times from OSRM are shown for information but are not used in the calculations. Bus and train figures keep their existing illustrative method, because there is no verified public transport data source.
+
+**No API key and no backend needed.** Both services are free and keyless, so they are called from the browser. No secret exists that would need hiding in a server function, so Cloud Functions (Blaze plan) are not needed.
+
+**Usage policies and attribution** ([Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/), [FOSSGIS routing terms](https://routing.openstreetmap.de/about.html)):
+
+- at most **one request per second** to each host, with requests queued (`minIntervalMs` 1100 ms);
+- **no autocomplete or search-as-you-type**: a lookup runs only when the user presses the button;
+- results are **cached** in memory and in `localStorage` for 7 days (`carbon-choices.routes.v1:*`), so a repeated journey makes no requests;
+- the browser's `Referer` identifies the app, and an optional contact email can be set with `VITE_NOMINATIM_EMAIL`;
+- every lookup shows "Places and routes © OpenStreetMap contributors", linking to the ODbL copyright page, and names Nominatim and OSRM;
+- these are public services **without guaranteed availability**, which the interface says. For heavy use, point `VITE_GEOCODER_URL` and `VITE_ROUTER_URL` at a self-hosted or commercial instance.
+
+**Error handling.** Each failure becomes a `RouteError` with a code and a plain-language message in `routeMessages.ts`, which suggests typing the distance instead:
+
+| Situation | Code |
+|---|---|
+| No answer within 10 s (request aborted) | `timeout` |
+| Network failure or offline | `network` |
+| HTTP 429 | `rate-limited` |
+| HTTP 5xx | `server-error` |
+| HTTP 401/403 (for example a misconfigured provider that needs a key) | `unauthorized` |
+| HTTP 400 or another 4xx | `bad-request` |
+| Place not found (empty result) | `not-found`, naming the start or destination |
+| OSRM `NoRoute` for every profile | `no-route` (a single missing profile is just shown as "no route found") |
+| Response that is not JSON or has the wrong shape or values | `malformed` |
+| Empty input, input over 200 characters, or the same place twice | `invalid-input` |
+
+Emission factors still come from the illustrative table in `src/features/tracking/emissionFactors.ts`. An emission-factor API (for example Climatiq or Carbon Interface) would need a secret key, and therefore a server function on the Blaze plan, so it is not included.
 
 ---
 
@@ -466,6 +631,8 @@ The application must support at least three locales:
 The brief also requires that every user-visible string is externalised, that plurals, dates, numbers and currencies use locale-aware formatting, that the HTML `lang` attribute follows the selected locale, and that the chosen locale persists across reloads.
 
 **Current state: localization is not implemented.** The interface is English only, strings are currently written directly in components, in `src/data/homeContent.ts`, in `src/features/goals/`, `src/features/tracking/` and `src/features/compare/` (numbers, currency, dates and plurals in these features already go through `Intl` formatters in their `format.ts`, fixed to English), no i18n library is installed, and there is no language switcher. `index.html` sets `lang="en"`.
+
+Errors from the database, sign-in and the map service are already returned as codes, with their English text kept in one file per area (`src/lib/errorMessages.ts`, `src/features/auth/authMessages.ts`, `src/features/routing/routeMessages.ts`), so they can be translated without changing the services.
 
 How to add a new locale will be documented here once the i18n setup is in place.
 
@@ -529,6 +696,29 @@ Results will be recorded here and in the Deliverable 2 document as testing is ca
 
 ---
 
+## Testing
+
+| Command | What it runs | Needs |
+|---|---|---|
+| `npm test` | 17 unit tests: the route service (success, empty result, malformed responses, network failure, timeout, HTTP 429/5xx/401/400, NoRoute, caching with expiry, throttling), data error mapping and timeouts, credential validation, shared emission factors in Compare and Tracking, and import ids | Nothing |
+| `npm run test:emulator` | 17 tests against the Auth and Firestore emulators with the real `firestore.rules`: 10 rules tests (owners can read and write their data; other users and signed-out visitors cannot read, list, write or delete; invalid activities, comparisons, plans and profiles are rejected; `createdAt` is fixed; saved comparisons cannot be edited) and 7 tests of the app's own auth service and repositories (register, profile document, sign out, wrong password, duplicate email, sign in; activity create/read/update/list/delete, persistence seen from a second client, live updates, access to another user's data refused; comparison save/list/get/delete; plan create/update/load/delete keeping `createdAt`; import twice without duplicates) | Java 11+ (the emulators run on Java), and network access the first time to download the emulators |
+
+The emulators use the demo project id `demo-carbon-choices`, so `npm test` and `npm run test:emulator` never touch the real database. Only `npm run test:live` uses the real project. It needs `.env.local`, creates two accounts named `carbon-choices-test-…@example.com`, and deletes them and all their records at the end. It does not read or change anyone else's data.
+
+**Running the app against the emulators** (no real Firebase project needed):
+
+```bash
+npm run emulators
+```
+
+In a second terminal:
+
+```bash
+VITE_FIREBASE_USE_EMULATOR=true npm run dev
+```
+
+---
+
 ## Development Workflow
 
 - `main` is the protected branch. Nobody pushes directly to `main`.
@@ -583,35 +773,39 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 |---|---|
 | Project setup (React, TypeScript, Vite, ESLint) | ✅ Done |
 | Shared frontend foundation: layout, navigation, home dashboard, reusable components, design tokens | ✅ Done (merged into `main` through Pull Request #1) |
-| Compare Everyday Choices | 🚧 In progress — all ten screens work, including saving, reopening and deleting comparisons; comparisons are stored temporarily in the browser and figures use illustrative factors and assumptions |
-| Carbon Reduction Goals & Recommendations | 🚧 In progress — all ten screens work and use Carbon tracking data (baseline, progress) and its emission factors (recommendation savings); sample values only when nothing is tracked; the plan is not saved |
-| Personal Carbon Tracking | 🚧 In progress — all ten screens work (merged into `main` through Pull Request #3), with full create/read/update/delete; activities are stored temporarily in the browser and emissions use illustrative factors |
-| Database | 📋 Planned |
-| External REST API | 📋 Planned |
+| Compare Everyday Choices | ✅ All ten screens work (Pull Request #4); saved comparisons are stored in Firestore; distances can be looked up with OpenStreetMap; figures use illustrative factors and assumptions |
+| Carbon Reduction Goals & Recommendations | ✅ All ten screens work and use Carbon tracking data (baseline, progress) and its emission factors; the plan is saved in Firestore automatically; sample values only when nothing is tracked |
+| Personal Carbon Tracking | ✅ All ten screens work (Pull Requests #3 and #6), with full create/read/update/delete in Firestore and live updates; emissions use illustrative factors |
+| Authentication (email and password) | ✅ Firebase Authentication |
+| Database | ✅ Cloud Firestore with Security Rules, deployed to `personal-carbon-tradeoff` and verified with `npm run test:live` |
+| External REST API | ✅ OpenStreetMap Nominatim + OSRM for journey distances |
 | Internationalization (en, hr, third locale) | 📋 Planned |
 | Accessibility testing and report | 📋 Planned |
-| Automated tests | 📋 Planned |
+| Automated tests | ✅ Vitest unit tests and emulator tests for rules and repositories; no UI tests |
 
 ---
 
 ## Known Limitations
 
 - Settings shows a "not available yet" page.
-- Saved comparisons are stored in the browser's `localStorage`, not in a database: they stay on one device and are lost if site data is cleared. If that data is damaged, the app shows an error but cannot repair it; clearing site data is the only fix for now.
-- Compare uses distances entered by the user and illustrative cost, speed and waiting-time assumptions, not real routes, fares, timetables or traffic. Car costs leave out purchase, insurance and maintenance.
+- Compare uses one distance for all options (typed, or chosen from the OpenStreetMap lookup) and illustrative cost, speed and waiting-time assumptions, not real fares, timetables or traffic. Car costs leave out purchase, insurance and maintenance.
+- The distance lookup uses free public OpenStreetMap services with no uptime guarantee and a one-request-per-second limit. It looks up one place per field (the best match), so an ambiguous name can find the wrong place; the found names are shown so the user can check.
 - The comparison in progress and the screen within Compare journeys are not part of the URL, so reloading or leaving the page returns to the start screen (saved comparisons can be reopened).
-- Carbon tracking stores activities in the browser's `localStorage`, not in a database: data stays on one device and is lost if site data is cleared.
 - Carbon tracking emission estimates use illustrative factors, not a verified dataset or API.
 - The screen within Carbon tracking (for example an activity's details) is not part of the URL, so reloading returns to the dashboard and the browser Back button leaves the feature.
 - Carbon goals shows a labelled sample starting point and sample month until the user records activities in Carbon tracking. A baseline taken from Carbon tracking is a snapshot: choose "From Carbon tracking" again to refresh it.
 - The reduction ideas in Carbon goals are fixed examples written for the prototype. Their savings use example amounts and illustrative emission factors, not the user's own habits, and they are not personalised advice.
 - Carbon goals uses only the three Tracking categories (transport, food, home energy); goods and shopping are not covered.
-- A carbon plan in Carbon goals is kept in memory only: it survives moving between pages but is lost when the page is reloaded.
+- Each user has one carbon plan; there is no history of earlier plans other than the adjustment list.
 - The step within Carbon goals is not part of the URL, so reloading returns to step 1.
-- No external API is connected; all emissions, cost and travel-time figures are illustrative estimates, not real data.
+- All emissions, cost and travel-time figures are illustrative estimates; only the route distances come from an external service.
+- Changes to `firestore.rules` take effect only after `npm run deploy:rules` (needs a Firebase login with access to the project).
+- No email verification, password reset or account deletion in the app.
+- Offline use is limited: Firestore keeps its cache in memory only, so a page reload while offline shows "The database cannot be reached". Writes made while the connection drops are queued by Firestore, but the app reports a timeout after 15 s if the server has not confirmed them.
+- The production bundle is about 960 kB (280 kB gzipped), mainly the Firebase SDK; it is not split by page yet.
 - The interface is English only, and user-visible strings are not externalised.
 - Routing is hash-based (`#/compare`), so URLs contain a `#`.
-- There are no automated tests.
+- There are no automated UI (browser) tests; the screens were checked by hand.
 - No dark mode.
 - The font falls back to the system font; Inter is used only if it is already installed on the device.
 - The accessibility items listed under [Not done yet](#not-done-yet) have not been verified.

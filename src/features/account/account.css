@@ -1,0 +1,55 @@
+.import-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-primary-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-softer);
+}
+
+.import-panel__title {
+  font-size: var(--text-lg);
+}
+
+.import-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.import-panel__success {
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+.import-panel__error {
+  color: #9b231a;
+  font-weight: 600;
+}
+
+.account-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 44rem;
+}
+
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.account-card__title {
+  font-size: var(--text-lg);
+}
+
+.account-error {
+  color: #9b231a;
+  font-weight: 600;
+}

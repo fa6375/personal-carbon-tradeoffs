@@ -9,7 +9,7 @@ export function SavedPage() {
       <PageHeader
         eyebrow="Compare everyday choices"
         title="Saved comparisons"
-        description="Return to journeys you have compared before. Comparisons are stored in this browser only."
+        description="Return to journeys you have compared before. Comparisons are saved in your account."
       />
       <SavedComparisonList />
     </div>

@@ -1,12 +1,13 @@
 /**
  * Data-access layer for saved comparisons.
  *
- * Screens only talk to the ComparisonRepository interface. The current
- * implementation is TEMPORARY: it keeps comparisons in this browser's
- * localStorage, so they survive a reload on the same device but are not
- * stored in the project database required by Deliverable 2 (the project has
- * no database yet). When the shared backend exists, add an API-backed
- * implementation and swap it in `comparisonRepository` below.
+ * Screens only talk to the ComparisonRepository interface. The app uses the
+ * Cloud Firestore implementation (firestoreComparisonRepository.ts), obtained
+ * with useComparisonRepository().
+ *
+ * The localStorage implementation below is what the app used before the
+ * database existed. It is kept so comparisons saved that way can be read and
+ * imported into the user's account. Nothing writes to it any more.
  */
 import { isPriorityLevel } from './criteria'
 import { isTransportOptionId } from './transportOptions'
@@ -32,7 +33,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function isSavedComparison(value: unknown): value is SavedComparison {
+export function isSavedComparison(value: unknown): value is SavedComparison {
   if (!isRecord(value) || !isRecord(value.input)) return false
   const { input } = value
   return (
@@ -51,6 +52,11 @@ function isSavedComparison(value: unknown): value is SavedComparison {
     isPriorityLevel(input.priorities.cost) &&
     isPriorityLevel(input.priorities.time)
   )
+}
+
+/** Comparisons saved in this browser before the database existed (used by the import). */
+export function readLocalComparisons(): SavedComparison[] {
+  return read()
 }
 
 function read(): SavedComparison[] {
@@ -107,9 +113,6 @@ export const localComparisonRepository: ComparisonRepository = {
     write(read().filter((comparison) => comparison.id !== id))
   },
 }
-
-/** The repository the feature uses. Replace with an API implementation later. */
-export const comparisonRepository: ComparisonRepository = localComparisonRepository
 
 /** Hash link that opens a saved comparison on the Compare page. */
 export function savedComparisonHref(id: string): string {
