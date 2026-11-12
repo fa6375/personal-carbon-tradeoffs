@@ -11,6 +11,7 @@ import {
   type User,
 } from 'firebase/auth'
 import { doc, getDocFromServer, serverTimestamp, setDoc } from 'firebase/firestore'
+import { getLocale } from '../../i18n'
 import { getFirebase } from '../../lib/firebase'
 
 export type AuthErrorCode =
@@ -88,6 +89,8 @@ export async function ensureUserProfile(user: User): Promise<void> {
   if (snapshot.exists()) return
   await setDoc(ref, {
     email: user.email ?? '',
+    // The language in use when the account is created becomes the saved preference.
+    locale: getLocale(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })

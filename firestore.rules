@@ -127,16 +127,23 @@ service cloud.firestore {
         && data.adjustments is list && data.adjustments.size() <= 200;
     }
 
+    // Optional interface language saved with the profile.
+    function validProfileLocale(data) {
+      return !('locale' in data) || data.locale in ['en', 'hr', 'de'];
+    }
+
     match /users/{uid} {
       allow read, delete: if isOwner(uid);
       allow create: if isOwner(uid)
-        && incoming().keys().hasOnly(['email', 'createdAt', 'updatedAt'])
+        && incoming().keys().hasOnly(['email', 'locale', 'createdAt', 'updatedAt'])
         && stringUpTo(incoming().email, 320)
+        && validProfileLocale(incoming())
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
       allow update: if isOwner(uid)
-        && incoming().keys().hasOnly(['email', 'createdAt', 'updatedAt'])
+        && incoming().keys().hasOnly(['email', 'locale', 'createdAt', 'updatedAt'])
         && stringUpTo(incoming().email, 320)
+        && validProfileLocale(incoming())
         && validUpdateTimes();
 
       match /activities/{activityId} {
