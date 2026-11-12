@@ -448,7 +448,8 @@ npm run lint
 | `npm test` | `vitest run` | Unit tests (no network, no Firebase) |
 | `npm run test:emulator` | `firebase emulators:exec … vitest run --config vitest.emulator.config.ts` | Starts the Auth and Firestore emulators, runs the rules and repository tests, stops the emulators (needs Java) |
 | `npm run emulators` | `firebase emulators:start --only auth,firestore …` | Runs the emulators for manual testing with `VITE_FIREBASE_USE_EMULATOR=true` |
-| `npm run deploy:rules` | `firebase deploy --only firestore:rules,firestore:indexes --project personal-carbon-tradeoff` | Publishes `firestore.rules` to the real project (needs `npx firebase login` first) |
+| `npm run test:live` | `vitest run --config vitest.live.config.ts` | 7 tests against the **real** project from `.env.local`: creates two throw-away accounts, checks Auth, CRUD for all three features and the deployed rules, then deletes everything it created |
+| `npm run deploy:rules` | `firebase deploy --only firestore:rules --project personal-carbon-tradeoff` | Publishes **only** `firestore.rules` to the real project's `(default)` database (needs `npx firebase login` first) |
 
 ---
 
@@ -499,7 +500,7 @@ Browser (React + Vite)
 
 The team uses the existing Firebase project **`personal-carbon-tradeoff`** with the web app **Carbon Choices Web**. Do not create a new project.
 
-1. **Get the web config.** In the [Firebase console](https://console.firebase.google.com/) → `personal-carbon-tradeoff` → ⚙ Project settings → General → Your apps → *Carbon Choices Web* → SDK setup and configuration → Config. Copy each value into `.env.local` (see [Environment Variables](#environment-variables)).
+1. **Get the web config.** In the [Firebase console](https://console.firebase.google.com/) → `personal-carbon-tradeoff` → ⚙ Project settings → General → Your apps → *Carbon Choices Web* → SDK setup and configuration → Config. Copy each value into `.env.local` (see [Environment Variables](#environment-variables)). `measurementId` is not needed: the app does not use Google Analytics.
 2. **Authentication.** Build → Authentication → Sign-in method: **Email/Password** must be enabled (it is). Users register in the app on the Account page or on any page that needs an account. Email verification and password reset are not implemented.
 3. **Firestore.** Build → Firestore Database. The database already exists. Publish the rules from this repository (it must not stay in test mode):
 
@@ -511,7 +512,9 @@ The team uses the existing Firebase project **`personal-carbon-tradeoff`** with 
    npm run deploy:rules
    ```
 
-   This publishes `firestore.rules` and `firestore.indexes.json` to `personal-carbon-tradeoff` (set in `.firebaserc` and in the script). Check the target project in the command output before confirming. No composite indexes are needed: every query orders a single collection by one field.
+   This publishes only `firestore.rules` to the `(default)` Firestore database of `personal-carbon-tradeoff` (set in `.firebaserc` and in the script); nothing else in the project is changed. Check the target project in the command output. No composite indexes are needed (every query orders a single collection by one field), so `firestore.indexes.json` is empty and is not deployed by this script.
+
+   **Status:** the rules in this repository were deployed to `personal-carbon-tradeoff` on 2026-11-12 ("released rules firestore.rules to cloud.firestore"). Deploy again whenever `firestore.rules` changes.
 4. **Run the app** with `npm run dev`, create an account on the Account page, and add an activity. It appears in Firestore under `users/<your uid>/activities`.
 
 ---
@@ -700,7 +703,7 @@ Results will be recorded here and in the Deliverable 2 document as testing is ca
 | `npm test` | 17 unit tests: the route service (success, empty result, malformed responses, network failure, timeout, HTTP 429/5xx/401/400, NoRoute, caching with expiry, throttling), data error mapping and timeouts, credential validation, shared emission factors in Compare and Tracking, and import ids | Nothing |
 | `npm run test:emulator` | 17 tests against the Auth and Firestore emulators with the real `firestore.rules`: 10 rules tests (owners can read and write their data; other users and signed-out visitors cannot read, list, write or delete; invalid activities, comparisons, plans and profiles are rejected; `createdAt` is fixed; saved comparisons cannot be edited) and 7 tests of the app's own auth service and repositories (register, profile document, sign out, wrong password, duplicate email, sign in; activity create/read/update/list/delete, persistence seen from a second client, live updates, access to another user's data refused; comparison save/list/get/delete; plan create/update/load/delete keeping `createdAt`; import twice without duplicates) | Java 11+ (the emulators run on Java), and network access the first time to download the emulators |
 
-The emulators use the demo project id `demo-carbon-choices`, so tests never touch the real database.
+The emulators use the demo project id `demo-carbon-choices`, so `npm test` and `npm run test:emulator` never touch the real database. Only `npm run test:live` uses the real project. It needs `.env.local`, creates two accounts named `carbon-choices-test-…@example.com`, and deletes them and all their records at the end. It does not read or change anyone else's data.
 
 **Running the app against the emulators** (no real Firebase project needed):
 
@@ -774,7 +777,7 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 | Carbon Reduction Goals & Recommendations | ✅ All ten screens work and use Carbon tracking data (baseline, progress) and its emission factors; the plan is saved in Firestore automatically; sample values only when nothing is tracked |
 | Personal Carbon Tracking | ✅ All ten screens work (Pull Requests #3 and #6), with full create/read/update/delete in Firestore and live updates; emissions use illustrative factors |
 | Authentication (email and password) | ✅ Firebase Authentication |
-| Database | ✅ Cloud Firestore with Security Rules (rules must be published with `npm run deploy:rules`) |
+| Database | ✅ Cloud Firestore with Security Rules, deployed to `personal-carbon-tradeoff` and verified with `npm run test:live` |
 | External REST API | ✅ OpenStreetMap Nominatim + OSRM for journey distances |
 | Internationalization (en, hr, third locale) | 📋 Planned |
 | Accessibility testing and report | 📋 Planned |
@@ -796,7 +799,7 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 - Each user has one carbon plan; there is no history of earlier plans other than the adjustment list.
 - The step within Carbon goals is not part of the URL, so reloading returns to step 1.
 - All emissions, cost and travel-time figures are illustrative estimates; only the route distances come from an external service.
-- The Firestore rules in the repository must be **published** with `npm run deploy:rules` (it needs a Firebase login). Until then the real project uses whatever rules are set in the console.
+- Changes to `firestore.rules` take effect only after `npm run deploy:rules` (needs a Firebase login with access to the project).
 - No email verification, password reset or account deletion in the app.
 - Offline use is limited: Firestore keeps its cache in memory only, so a page reload while offline shows "The database cannot be reached". Writes made while the connection drops are queued by Firestore, but the app reports a timeout after 15 s if the server has not confirmed them.
 - The production bundle is about 960 kB (280 kB gzipped), mainly the Firebase SDK; it is not split by page yet.

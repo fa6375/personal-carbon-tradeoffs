@@ -43,10 +43,11 @@ This summary describes what branch `feature/shared-backend-database-api` impleme
   - the "database cannot be reached" state;
   - no horizontal scrolling at 375 px.
 - One live distance lookup against the public services (Zagreb to Samobor: 25.6 km by car).
+- **Real project** `personal-carbon-tradeoff` (2026-11-12): rules deployed with `npm run deploy:rules` (rules only). `npm run test:live` passed 7/7 with the app's own code: real sign-up and sign-in (no emulator), Tracking, Compare and Goals CRUD, another user denied read, list and delete, signed-out visitors denied, and invalid data and unknown collections rejected. A browser check on the real project covered registration, adding an activity, keeping it after a reload, and deleting it. All test accounts and records were deleted afterwards (0 accounts left).
 
 ## Not done / limitations
 
-- The real Firebase project was not used during development: the web config was not available on the developer's machine. Everything was tested against the emulators. The rules still have to be published (`npm run deploy:rules`, which needs a Firebase login).
+- Changes to `firestore.rules` must be deployed again with `npm run deploy:rules` (needs a Firebase login with access to the project).
 - No email verification, password reset or account deletion.
 - Cost and time figures, emission factors and the Goals sample values are illustrative, not verified data.
 - Localisation is not implemented; the error codes are ready to be translated.
