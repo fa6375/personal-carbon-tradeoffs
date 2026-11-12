@@ -1,0 +1,4 @@
+
+> personal-carbon-tradeoffs@0.0.0 lint
+> eslint .
+

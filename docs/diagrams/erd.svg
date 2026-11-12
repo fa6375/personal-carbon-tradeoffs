@@ -1,0 +1,140 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1400' height='1120' viewBox='0 0 1400 1120'>
+<rect x='0' y='0' width='1400' height='1120' fill='#f6f8f6'/>
+<text x='30' y='42' font-family='Helvetica, Arial, sans-serif' font-size='26' font-weight='700' fill='#163d29' text-anchor='start'>Carbon Choices — Cloud Firestore data model (ERD)</text>
+<text x='30' y='66' font-family='Helvetica, Arial, sans-serif' font-size='13.5' font-weight='400' fill='#4f5c54' text-anchor='start'>Project personal-carbon-tradeoff · database (default) · ownership by path: every document lives under users/{uid}. Matches firestore.rules and src/features/*/types.ts.</text>
+<rect x='540' y='95' width='320' height='166' rx='8' fill='#ffffff' stroke='#1f6b45' stroke-width='2'/>
+<path d='M540,143 V103 Q540,95 548,95 H852 Q860,95 860,103 V143 Z' fill='#1f6b45'/>
+<text x='552' y='116' font-family='Helvetica, Arial, sans-serif' font-size='16' font-weight='700' fill='#ffffff' text-anchor='start'>USER</text>
+<text x='552' y='134' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='400' fill='#eef4f0' text-anchor='start'>users/{uid}  ·  Firebase Auth uid</text>
+<text x='552' y='165' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#9b5c00' text-anchor='start'>PK</text>
+<text x='580' y='165' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>uid (document id)</text>
+<text x='848' y='165' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>string</text>
+<text x='580' y='185' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>email</text>
+<text x='848' y='185' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>string ≤ 320</text>
+<text x='580' y='205' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>locale?</text>
+<text x='848' y='205' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>"en" | "hr" | "de"</text>
+<text x='580' y='225' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>createdAt</text>
+<text x='848' y='225' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>timestamp (UTC)</text>
+<text x='580' y='245' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>updatedAt</text>
+<text x='848' y='245' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>timestamp (UTC)</text>
+<rect x='30' y='400' width='410' height='266' rx='8' fill='#ffffff' stroke='#2f5f8a' stroke-width='2'/>
+<path d='M30,448 V408 Q30,400 38,400 H432 Q440,400 440,408 V448 Z' fill='#2f5f8a'/>
+<text x='42' y='421' font-family='Helvetica, Arial, sans-serif' font-size='16' font-weight='700' fill='#ffffff' text-anchor='start'>ACTIVITY</text>
+<text x='42' y='439' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='400' fill='#eef4f0' text-anchor='start'>users/{uid}/activities/{activityId}</text>
+<text x='42' y='470' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#9b5c00' text-anchor='start'>PK</text>
+<text x='70' y='470' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>activityId</text>
+<text x='428' y='470' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>auto id</text>
+<text x='42' y='490' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#2f5f8a' text-anchor='start'>FK</text>
+<text x='70' y='490' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>owner uid</text>
+<text x='428' y='490' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>path segment</text>
+<text x='70' y='510' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>date</text>
+<text x='428' y='510' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>"YYYY-MM-DD"</text>
+<text x='70' y='530' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>note</text>
+<text x='428' y='530' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>string ≤ 120</text>
+<text x='70' y='550' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>details.category</text>
+<text x='428' y='550' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>transport | food | home</text>
+<text x='70' y='570' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>details.mode | item | source</text>
+<text x='428' y='570' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>enum</text>
+<text x='70' y='590' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>details.distanceKm | servings | kwh</text>
+<text x='428' y='590' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>number</text>
+<text x='70' y='610' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>details.passengers | householdSize</text>
+<text x='428' y='610' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>int</text>
+<text x='70' y='630' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>importedFrom?</text>
+<text x='428' y='630' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>"localStorage"</text>
+<text x='70' y='650' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>createdAt / updatedAt</text>
+<text x='428' y='650' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>timestamp (UTC)</text>
+<rect x='495' y='400' width='410' height='266' rx='8' fill='#ffffff' stroke='#8a5a14' stroke-width='2'/>
+<path d='M495,448 V408 Q495,400 503,400 H897 Q905,400 905,408 V448 Z' fill='#8a5a14'/>
+<text x='507' y='421' font-family='Helvetica, Arial, sans-serif' font-size='16' font-weight='700' fill='#ffffff' text-anchor='start'>SAVED_COMPARISON</text>
+<text x='507' y='439' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='400' fill='#eef4f0' text-anchor='start'>users/{uid}/comparisons/{comparisonId}</text>
+<text x='507' y='470' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#9b5c00' text-anchor='start'>PK</text>
+<text x='535' y='470' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>comparisonId</text>
+<text x='893' y='470' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>auto id</text>
+<text x='507' y='490' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#2f5f8a' text-anchor='start'>FK</text>
+<text x='535' y='490' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>owner uid</text>
+<text x='893' y='490' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>path segment</text>
+<text x='535' y='510' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>name</text>
+<text x='893' y='510' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>string 1–80</text>
+<text x='535' y='530' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>input.modes[]</text>
+<text x='893' y='530' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>2–6 transport ids</text>
+<text x='535' y='550' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>input.journey{from,to,distanceKm,passengers}</text>
+<text x='893' y='550' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>map</text>
+<text x='535' y='570' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>input.priorities{emissions,cost,time}</text>
+<text x='893' y='570' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>int 0–3</text>
+<text x='535' y='590' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>options[]{mode,emissionsKg,costEur,…}</text>
+<text x='893' y='590' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>snapshot</text>
+<text x='535' y='610' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>recommended</text>
+<text x='893' y='610' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>transport id</text>
+<text x='535' y='630' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>importedFrom?</text>
+<text x='893' y='630' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>"localStorage"</text>
+<text x='535' y='650' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>createdAt / updatedAt</text>
+<text x='893' y='650' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>timestamp (UTC)</text>
+<rect x='960' y='400' width='410' height='306' rx='8' fill='#ffffff' stroke='#6b3fa0' stroke-width='2'/>
+<path d='M960,448 V408 Q960,400 968,400 H1362 Q1370,400 1370,408 V448 Z' fill='#6b3fa0'/>
+<text x='972' y='421' font-family='Helvetica, Arial, sans-serif' font-size='16' font-weight='700' fill='#ffffff' text-anchor='start'>GOAL_PLAN</text>
+<text x='972' y='439' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='400' fill='#eef4f0' text-anchor='start'>users/{uid}/goalPlans/current  (one per user)</text>
+<text x='972' y='470' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#9b5c00' text-anchor='start'>PK</text>
+<text x='1000' y='470' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>"current"</text>
+<text x='1358' y='470' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>fixed id</text>
+<text x='972' y='490' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#2f5f8a' text-anchor='start'>FK</text>
+<text x='1000' y='490' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>owner uid</text>
+<text x='1358' y='490' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>path segment</text>
+<text x='1000' y='510' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>baseline{source,amounts,takenAt?}</text>
+<text x='1358' y='510' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>map</text>
+<text x='1000' y='530' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>reductionPercent</text>
+<text x='1358' y='530' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>number 0–100</text>
+<text x='1000' y='550' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>durationMonths</text>
+<text x='1358' y='550' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>int 1–36</text>
+<text x='1000' y='570' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>startMonth</text>
+<text x='1358' y='570' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>"YYYY-MM"</text>
+<text x='1000' y='590' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>allocation{transport,food,home}</text>
+<text x='1358' y='590' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>percent</text>
+<text x='1000' y='610' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>priorities[]</text>
+<text x='1358' y='610' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>ordered ids</text>
+<text x='1000' y='630' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>selectedOpportunityIds[]</text>
+<text x='1358' y='630' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>≤ 50</text>
+<text x='1000' y='650' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>adjustments[]</text>
+<text x='1358' y='650' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>embedded, ≤ 200</text>
+<text x='1000' y='670' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>schemaVersion</text>
+<text x='1358' y='670' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>1</text>
+<text x='1000' y='690' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>createdAt / updatedAt</text>
+<text x='1358' y='690' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>timestamp (UTC)</text>
+<rect x='960' y='796' width='410' height='206' rx='8' fill='#ffffff' stroke='#6b3fa0' stroke-width='2'/>
+<path d='M960,844 V804 Q960,796 968,796 H1362 Q1370,796 1370,804 V844 Z' fill='#6b3fa0'/>
+<text x='972' y='817' font-family='Helvetica, Arial, sans-serif' font-size='16' font-weight='700' fill='#ffffff' text-anchor='start'>BUDGET_ADJUSTMENT (embedded)</text>
+<text x='972' y='835' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='400' fill='#eef4f0' text-anchor='start'>element of goalPlans/current.adjustments[]</text>
+<text x='972' y='866' font-family='Helvetica, Arial, sans-serif' font-size='11' font-weight='700' fill='#9b5c00' text-anchor='start'>PK</text>
+<text x='1000' y='866' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>id</text>
+<text x='1358' y='866' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>string</text>
+<text x='1000' y='886' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>kind</text>
+<text x='1358' y='886' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>reallocate | goal</text>
+<text x='1000' y='906' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>from? / to? / percentPoints?</text>
+<text x='1358' y='906' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>reallocate only</text>
+<text x='1000' y='926' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>reductionBefore / reductionAfter</text>
+<text x='1358' y='926' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>number</text>
+<text x='1000' y='946' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>budgetBefore / budgetAfter</text>
+<text x='1358' y='946' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>kg CO₂e</text>
+<text x='1000' y='966' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>allocationBefore / allocationAfter</text>
+<text x='1358' y='966' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>map</text>
+<text x='1000' y='986' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>reason, createdAt</text>
+<text x='1358' y='986' font-family='Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#5b6b61' text-anchor='end'>string (ISO UTC)</text>
+<path d='M700,261 V301' stroke='#38473e' stroke-width='2' fill='none'/>
+<path d='M235,301 H1165' stroke='#38473e' stroke-width='2' fill='none'/>
+<path d='M235,301 V400' stroke='#38473e' stroke-width='2' fill='none'/>
+<path d='M700,301 V400' stroke='#38473e' stroke-width='2' fill='none'/>
+<path d='M1165,301 V400' stroke='#38473e' stroke-width='2' fill='none'/>
+<text x='708' y='279' font-family='Helvetica, Arial, sans-serif' font-size='13' font-weight='700' fill='#163d29' text-anchor='start'>1</text>
+<text x='245' y='293' font-family='Helvetica, Arial, sans-serif' font-size='13' font-weight='700' fill='#163d29' text-anchor='start'>owns</text>
+<text x='243' y='392' font-family='Helvetica, Arial, sans-serif' font-size='13' font-weight='700' fill='#163d29' text-anchor='start'>0..*</text>
+<text x='708' y='392' font-family='Helvetica, Arial, sans-serif' font-size='13' font-weight='700' fill='#163d29' text-anchor='start'>0..*</text>
+<text x='1173' y='392' font-family='Helvetica, Arial, sans-serif' font-size='13' font-weight='700' fill='#163d29' text-anchor='start'>0..1</text>
+<path d='M1165,706 V796' stroke='#38473e' stroke-width='2' fill='none'/>
+<text x='1173' y='724' font-family='Helvetica, Arial, sans-serif' font-size='13' font-weight='700' fill='#163d29' text-anchor='start'>1</text>
+<text x='1173' y='788' font-family='Helvetica, Arial, sans-serif' font-size='13' font-weight='700' fill='#163d29' text-anchor='start'>0..200</text>
+<text x='1155' y='756' font-family='Helvetica, Arial, sans-serif' font-size='12' font-weight='400' fill='#4f5c54' text-anchor='end'>contains (embedded array)</text>
+<path d='M150,666 V726 H930 V676 H958' stroke='#8f9a93' stroke-width='2' fill='none' stroke-dasharray='6 5'/>
+<text x='160' y='748' font-family='Helvetica, Arial, sans-serif' font-size='12' font-weight='400' fill='#4f5c54' text-anchor='start'>derived: goal progress and the tracked baseline are calculated from ACTIVITY when read (not stored)</text>
+<text x='30' y='1052' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'><tspan font-weight='700' fill='#9b5c00'>PK</tspan> document id   <tspan font-weight='700' fill='#2f5f8a'>FK</tspan> owner = parent path users/{uid} (no stored userId field)   ? optional   ·   solid line: sub-collection or embedded array   ·   dashed: derived, not stored</text>
+<text x='30' y='1074' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>Every read and write is restricted to request.auth.uid == uid by firestore.rules, which also validate field types and ranges. Text is UTF-8 (tested with Croatian, Cyrillic and Arabic).</text>
+<text x='30' y='1096' font-family='Helvetica, Arial, sans-serif' font-size='12.5' font-weight='400' fill='#1b2a22' text-anchor='start'>No SQL tables or migrations: Firestore is schemaless; the schema is enforced by firestore.rules and the TypeScript types. Emissions are always recalculated from stored inputs.</text>
+</svg>

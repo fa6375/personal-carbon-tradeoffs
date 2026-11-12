@@ -1,0 +1,31 @@
+Accounts before run: 0 accounts in personal-carbon-tradeoff
+
+> personal-carbon-tradeoffs@0.0.0 test:live
+> vitest run --config vitest.live.config.ts --reporter=verbose
+
+
+ RUN  v4.1.12 /Users/faraj/Desktop/personal-carbon-tradeoffs
+
+ ✓ tests/live/real-firebase.test.ts > real Firebase project > signs in to the real project (not the emulator) and creates the profile 278ms
+ ✓ tests/live/real-firebase.test.ts > real Firebase project > Tracking: create, read, update, list and delete an activity 1678ms
+ ✓ tests/live/real-firebase.test.ts > real Firebase project > Compare: save, list, get and delete a comparison 1347ms
+ ✓ tests/live/real-firebase.test.ts > real Firebase project > Goals: create, update, load and delete the plan 1166ms
+stderr | tests/live/real-firebase.test.ts > real Firebase project > deployed rules: another user cannot read or write user A’s data
+[2026-11-12T22:43:33.958Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73c38311 error. Code: 7 Message: 7 PERMISSION_DENIED: Missing or insufficient permissions.
+
+ ✓ tests/live/real-firebase.test.ts > real Firebase project > deployed rules: another user cannot read or write user A’s data 1797ms
+ ✓ tests/live/real-firebase.test.ts > real Firebase project > deployed rules: signed-out visitors cannot read or write private data 771ms
+stderr | tests/live/real-firebase.test.ts > real Firebase project > deployed rules: invalid data is rejected
+[2026-11-12T22:43:35.440Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73c3830f error. Code: 7 Message: 7 PERMISSION_DENIED: Missing or insufficient permissions.
+
+stderr | tests/live/real-firebase.test.ts > real Firebase project > deployed rules: invalid data is rejected
+[2026-11-12T22:43:35.862Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73c38313 error. Code: 7 Message: 7 PERMISSION_DENIED: Missing or insufficient permissions.
+
+ ✓ tests/live/real-firebase.test.ts > real Firebase project > deployed rules: invalid data is rejected 676ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  23:43:20
+   Duration  18.33s (transform 111ms, setup 0ms, import 231ms, tests 18.02s, environment 0ms)
+
+Accounts after run: 0 accounts in personal-carbon-tradeoff
