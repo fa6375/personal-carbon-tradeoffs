@@ -1,60 +1,52 @@
+import { useI18n } from '../../../i18n'
 import { getBaselineKg, getBudgetKg, getMonthlyTargets, roundKg } from '../budget'
-import { formatDateTime, formatKg, formatMonth } from '../format'
+import { formatDateTime, formatKg, formatMonth, formatPercentValue } from '../format'
 import { CATEGORIES } from '../sampleData'
-import type { BaselineSource, GoalPlan } from '../types'
+import type { GoalPlan } from '../types'
 import { Panel, ProgressBar, StatTile } from './GoalsUi'
-
-const SOURCE_LABEL: Record<BaselineSource, string> = {
-  sample: 'Sample value',
-  tracked: 'From Carbon tracking',
-  custom: 'Your estimate',
-}
 
 /** Screen 2 – Personal carbon budget. */
 export function PersonalBudget({ plan }: { plan: GoalPlan }) {
+  const { t } = useI18n()
   const baselineKg = getBaselineKg(plan)
   const budgetKg = getBudgetKg(plan)
   const firstMonthKg = getMonthlyTargets(plan)[0].targetKg
 
   return (
-    <Panel
-      id="goals-budget-title"
-      title="Your personal carbon budget"
-      description="The monthly amount of emissions you are aiming to stay within by the end of your plan."
-    >
+    <Panel id="goals-budget-title" title={t('goals.budget.title')} description={t('goals.budget.description')}>
       <dl className="goals-stats">
         <StatTile
-          label="Monthly budget"
+          label={t('goals.budget.monthly')}
           value={formatKg(budgetKg)}
-          hint={`From ${formatMonth(plan.startMonth, plan.durationMonths - 1)}`}
+          hint={t('goals.budget.from', { month: formatMonth(plan.startMonth, plan.durationMonths - 1) })}
           highlight
         />
         <StatTile
-          label="Current monthly emissions"
+          label={t('goals.budget.current')}
           value={formatKg(baselineKg)}
           hint={
             plan.baseline.source === 'tracked' && plan.baseline.takenAt
-              ? `${SOURCE_LABEL.tracked}, ${formatDateTime(plan.baseline.takenAt)}`
-              : SOURCE_LABEL[plan.baseline.source]
+              ? t('goals.budget.trackedAt', { time: formatDateTime(plan.baseline.takenAt) })
+              : t(`goals.budget.sources.${plan.baseline.source}`)
           }
         />
         <StatTile
-          label="Reduction"
+          label={t('goals.budget.reduction')}
           value={formatKg(roundKg(baselineKg - budgetKg))}
-          hint={`${plan.reductionPercent}% less than now`}
+          hint={t('goals.budget.lessThanNow', { percent: formatPercentValue(plan.reductionPercent) })}
         />
         <StatTile
-          label="First month target"
+          label={t('goals.budget.firstMonth')}
           value={formatKg(firstMonthKg)}
-          hint={`${formatMonth(plan.startMonth)}, step 1 of ${plan.durationMonths}`}
+          hint={t('goals.budget.stepOf', { month: formatMonth(plan.startMonth), total: plan.durationMonths })}
         />
       </dl>
 
       <div className="goals-compare">
         <div className="goals-compare__row">
-          <span>Now</span>
+          <span>{t('goals.budget.now')}</span>
           <ProgressBar
-            label="Current monthly emissions"
+            label={t('goals.budget.current')}
             value={baselineKg}
             max={baselineKg}
             valueText={formatKg(baselineKg)}
@@ -63,18 +55,21 @@ export function PersonalBudget({ plan }: { plan: GoalPlan }) {
           <span>{formatKg(baselineKg)}</span>
         </div>
         <div className="goals-compare__row">
-          <span>Goal</span>
+          <span>{t('goals.budget.goal')}</span>
           <ProgressBar
-            label="Monthly budget"
+            label={t('goals.budget.monthly')}
             value={budgetKg}
             max={baselineKg}
-            valueText={`${formatKg(budgetKg)}, ${100 - plan.reductionPercent}% of now`}
+            valueText={t('goals.budget.goalValue', {
+              kg: formatKg(budgetKg),
+              percent: formatPercentValue(100 - plan.reductionPercent),
+            })}
           />
           <span>{formatKg(budgetKg)}</span>
         </div>
       </div>
 
-      <h4 className="goals-subheading">Where your emissions come from now</h4>
+      <h4 className="goals-subheading">{t('goals.budget.whereNow')}</h4>
       <ul className="goals-category-list">
         {CATEGORIES.map((category) => (
           <li key={category.id}>

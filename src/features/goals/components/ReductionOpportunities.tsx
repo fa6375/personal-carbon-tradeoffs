@@ -1,6 +1,7 @@
 import { useState, type Dispatch } from 'react'
 import { Button } from '../../../components/Button'
 import { ButtonLink } from '../../../components/ButtonLink'
+import { useI18n } from '../../../i18n'
 import {
   getCategoryGaps,
   getSavingKg,
@@ -9,10 +10,10 @@ import {
   roundKg,
   sumAmounts,
 } from '../budget'
-import { formatCount, formatKg } from '../format'
+import { formatKg } from '../format'
 import type { GoalPlanAction } from '../goalPlanReducer'
 import { CATEGORIES, getCategoryLabel, getPriority, OPPORTUNITIES } from '../sampleData'
-import type { CategoryId, GoalPlan, Opportunity, TradeoffEffect } from '../types'
+import type { CategoryId, GoalPlan, Opportunity } from '../types'
 import { EstimateNotice, Panel, ProgressBar } from './GoalsUi'
 
 interface ReductionOpportunitiesProps {
@@ -22,14 +23,9 @@ interface ReductionOpportunitiesProps {
 
 type Filter = CategoryId | 'all' | 'needed'
 
-const EFFECT_TEXT: Record<'cost' | 'time' | 'comfort', Record<TradeoffEffect, string>> = {
-  cost: { better: 'Saves money', same: 'Same cost', worse: 'Costs more' },
-  time: { better: 'Saves time', same: 'Same time', worse: 'Takes longer' },
-  comfort: { better: 'More comfortable', same: 'Same comfort', worse: 'Less comfortable' },
-}
-
 /** Screen 7 – Reduction opportunities (recommendations). */
 export function ReductionOpportunities({ plan, dispatch }: ReductionOpportunitiesProps) {
+  const { t, locale } = useI18n()
   const [filter, setFilter] = useState<Filter>('all')
 
   const gaps = getCategoryGaps(plan)
@@ -41,18 +37,25 @@ export function ReductionOpportunities({ plan, dispatch }: ReductionOpportunitie
   const savings = getSavingsByCategory(selected)
   const totalSaving = sumAmounts(savings)
   const totalGap = sumAmounts(gaps)
+  // German capitalises nouns, so the priority keeps its capital letter there.
+  const topPriority = getPriority(plan.priorities[0]).label
+  const priorityInSentence = locale === 'de' ? topPriority : topPriority.toLocaleLowerCase(locale)
 
   return (
     <Panel
       id="goals-opportunities-title"
-      title="Reduction opportunities"
-      description={`Ideas ordered by your priorities (most important: ${getPriority(plan.priorities[0]).label.toLowerCase()}), with categories that still need cutting first. Add the ones you want to try to your plan.`}
+      title={t('goals.opportunityScreen.title')}
+      description={t('goals.opportunityScreen.description', { priority: priorityInSentence })}
     >
       <div className="goals-coverage">
         <p className="goals-coverage__summary" role="status">
           {selected.length === 0
-            ? `No changes added yet. To reach your budget you need to cut about ${formatKg(totalGap)} a month.`
-            : `${formatCount(selected.length, 'change', 'changes')} added, worth about ${formatKg(totalSaving)} a month of the ${formatKg(totalGap)} you need to cut.`}
+            ? t('goals.opportunityScreen.noneAdded', { kg: formatKg(totalGap) })
+            : t('goals.opportunityScreen.added', {
+                changes: t('goals.opportunityScreen.changes', { count: selected.length }),
+                saving: formatKg(totalSaving),
+                gap: formatKg(totalGap),
+              })}
         </p>
         <ul className="goals-coverage__list">
           {CATEGORIES.map((category) => {
@@ -64,18 +67,26 @@ export function ReductionOpportunities({ plan, dispatch }: ReductionOpportunitie
                 {gap > 0 ? (
                   <>
                     <ProgressBar
-                      label={`${category.label}: planned savings compared with the cut needed`}
+                      label={t('goals.opportunityScreen.coverageLabel', { category: category.label })}
                       value={saving}
                       max={gap}
-                      valueText={`${formatKg(saving)} of ${formatKg(gap)} needed`}
+                      valueText={t('goals.opportunityScreen.coverageValue', {
+                        saving: formatKg(saving),
+                        gap: formatKg(gap),
+                      })}
                     />
                     <span className="goals-hint">
-                      {formatKg(saving)} of {formatKg(gap)}
-                      {saving >= gap ? ' · covered' : ` · ${formatKg(roundKg(gap - saving))} to go`}
+                      {saving >= gap
+                        ? t('goals.opportunityScreen.covered', { saving: formatKg(saving), gap: formatKg(gap) })
+                        : t('goals.opportunityScreen.toGo', {
+                            saving: formatKg(saving),
+                            gap: formatKg(gap),
+                            rest: formatKg(roundKg(gap - saving)),
+                          })}
                     </span>
                   </>
                 ) : (
-                  <span className="goals-hint">No cut needed with your allocation</span>
+                  <span className="goals-hint">{t('goals.opportunityScreen.noCut')}</span>
                 )}
               </li>
             )
@@ -85,7 +96,7 @@ export function ReductionOpportunities({ plan, dispatch }: ReductionOpportunitie
 
       <div className="goals-field goals-field--inline">
         <label className="goals-label" htmlFor="opportunity-filter">
-          Show
+          {t('goals.opportunityScreen.show')}
         </label>
         <select
           id="opportunity-filter"
@@ -93,8 +104,8 @@ export function ReductionOpportunities({ plan, dispatch }: ReductionOpportunitie
           value={filter}
           onChange={(event) => setFilter(event.target.value as Filter)}
         >
-          <option value="all">All ideas</option>
-          <option value="needed">Categories that need cutting</option>
+          <option value="all">{t('goals.opportunityScreen.all')}</option>
+          <option value="needed">{t('goals.opportunityScreen.needed')}</option>
           {CATEGORIES.map((category) => (
             <option key={category.id} value={category.id}>
               {category.label}
@@ -104,9 +115,7 @@ export function ReductionOpportunities({ plan, dispatch }: ReductionOpportunitie
       </div>
 
       {visible.length === 0 ? (
-        <p className="goals-empty">
-          No ideas match this filter. With your allocation, no category needs cutting.
-        </p>
+        <p className="goals-empty">{t('goals.opportunityScreen.noMatch')}</p>
       ) : (
         <ul className="goals-opportunities">
           {visible.map((opportunity) => (
@@ -122,17 +131,13 @@ export function ReductionOpportunities({ plan, dispatch }: ReductionOpportunitie
       )}
 
       <div className="goals-crosslink">
-        <p>Want to see the trade-offs for a specific trip before changing how you travel?</p>
+        <p>{t('goals.opportunityScreen.compareText')}</p>
         <ButtonLink href="#/compare" variant="secondary" icon="arrow-right">
-          Compare a journey
+          {t('goals.opportunityScreen.compareLink')}
         </ButtonLink>
       </div>
 
-      <EstimateNotice>
-        Savings are calculated from the example amounts on each card with the same illustrative
-        emission factors that Carbon tracking and Compare use. Your own saving depends on what you
-        do now. These ideas are examples written for this prototype, not personalised advice.
-      </EstimateNotice>
+      <EstimateNotice>{t('goals.opportunityScreen.notice')}</EstimateNotice>
     </Panel>
   )
 }
@@ -146,36 +151,37 @@ interface OpportunityCardProps {
 }
 
 function OpportunityCard({ opportunity, needed, isSelected, onToggle }: OpportunityCardProps) {
+  const { t } = useI18n()
   const titleId = `opportunity-${opportunity.id}`
   return (
     <li className={`goals-opportunity${isSelected ? ' goals-opportunity--selected' : ''}`}>
       <article aria-labelledby={titleId}>
         <p className="goals-tag">
           {getCategoryLabel(opportunity.categoryId)}
-          {needed && <span className="goals-tag__extra"> · needs cutting</span>}
+          {needed && <span className="goals-tag__extra"> · {t('goals.opportunityScreen.needsCutting')}</span>}
         </p>
         <h4 id={titleId} className="goals-opportunity__title">
           {opportunity.title}
         </h4>
         <p className="goals-hint">{opportunity.description}</p>
         <p className="goals-opportunity__saving">
-          About {formatKg(getSavingKg(opportunity))} less a month
+          {t('goals.opportunityScreen.saving', { kg: formatKg(getSavingKg(opportunity)) })}
         </p>
-        <p className="goals-opportunity__assumption">Example: {opportunity.assumption}</p>
-        <ul className="goals-chips" aria-label="Trade-offs">
+        <p className="goals-opportunity__assumption">
+          {t('goals.opportunityScreen.example', { text: opportunity.assumption })}
+        </p>
+        <ul className="goals-chips" aria-label={t('goals.opportunityScreen.tradeoffs')}>
           {(['cost', 'time', 'comfort'] as const).map((key) => (
             <li key={key} className={`goals-chip goals-chip--${opportunity[key]}`}>
-              {EFFECT_TEXT[key][opportunity[key]]}
+              {t(`goals.opportunityScreen.effects.${key}.${opportunity[key]}`)}
             </li>
           ))}
-          <li className="goals-chip">Effort: {opportunity.effort}</li>
+          <li className="goals-chip">
+            {t('goals.opportunityScreen.effort', { level: t(`goals.opportunityScreen.efforts.${opportunity.effort}`) })}
+          </li>
         </ul>
-        <Button
-          variant={isSelected ? 'primary' : 'secondary'}
-          icon={isSelected ? 'check' : undefined}
-          onClick={onToggle}
-        >
-          {isSelected ? 'Added to plan' : 'Add to plan'}
+        <Button variant={isSelected ? 'primary' : 'secondary'} icon={isSelected ? 'check' : undefined} onClick={onToggle}>
+          {isSelected ? t('goals.opportunityScreen.addedButton') : t('goals.opportunityScreen.add')}
         </Button>
       </article>
     </li>

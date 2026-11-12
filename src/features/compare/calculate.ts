@@ -13,6 +13,7 @@
  * 4. The recommended option is the one with the highest overall score. Ties
  *    are broken by lower emissions, then shorter time, then input order.
  */
+import { t, type MessageKey, type MessageParams } from '../../i18n'
 import { CRITERIA } from './criteria'
 import { emissionFactorFor, getTransportOption } from './transportOptions'
 import type {
@@ -28,11 +29,16 @@ import { MAX_DISTANCE_KM, MAX_PASSENGERS } from './validation'
 /** Thrown when a comparison cannot be calculated from the given input. */
 export class ComparisonError extends Error {
   readonly kind: 'invalid-input' | 'missing-information' | 'calculation-failed'
+  /** Translation key for the message shown to people (the English message stays for logs and tests). */
+  readonly messageKey?: MessageKey
+  readonly messageParams?: MessageParams
 
-  constructor(kind: ComparisonError['kind'], message: string) {
+  constructor(kind: ComparisonError['kind'], message: string, messageKey?: MessageKey, messageParams?: MessageParams) {
     super(message)
     this.name = 'ComparisonError'
     this.kind = kind
+    this.messageKey = messageKey
+    this.messageParams = messageParams
   }
 }
 
@@ -69,25 +75,29 @@ export function totalWeight(priorities: Priorities): number {
 function checkInput(input: ComparisonInput) {
   const { modes, journey, priorities } = input
   if (new Set(modes).size < 2) {
-    throw new ComparisonError('missing-information', 'Choose at least two different ways to travel to compare.')
+    throw new ComparisonError('missing-information', 'Choose at least two different ways to travel to compare.', 'compare.calcErrors.twoModes')
   }
   if (!journey.from.trim() || !journey.to.trim()) {
-    throw new ComparisonError('missing-information', 'The starting point or destination is missing.')
+    throw new ComparisonError('missing-information', 'The starting point or destination is missing.', 'compare.calcErrors.placesMissing')
   }
   if (!Number.isFinite(journey.distanceKm) || journey.distanceKm <= 0 || journey.distanceKm > MAX_DISTANCE_KM) {
     throw new ComparisonError(
       'invalid-input',
       `The distance must be more than 0 and at most ${MAX_DISTANCE_KM} km.`,
+      'compare.calcErrors.distanceRange',
+      { max: MAX_DISTANCE_KM },
     )
   }
   if (!Number.isInteger(journey.passengers) || journey.passengers < 1 || journey.passengers > MAX_PASSENGERS) {
     throw new ComparisonError(
       'invalid-input',
       `The number of people must be a whole number from 1 to ${MAX_PASSENGERS}.`,
+      'compare.calcErrors.passengersRange',
+      { max: MAX_PASSENGERS },
     )
   }
   if (totalWeight(priorities) <= 0) {
-    throw new ComparisonError('invalid-input', 'At least one priority must matter to make a recommendation.')
+    throw new ComparisonError('invalid-input', 'At least one priority must matter to make a recommendation.', 'compare.calcErrors.noPriority')
   }
 }
 
@@ -130,7 +140,7 @@ export function calculateComparison(input: ComparisonInput): ComparisonResult {
   })
 
   if (options.some((option) => ![option.emissionsKg, option.costEur, option.timeMinutes, option.overallScore].every(Number.isFinite))) {
-    throw new ComparisonError('calculation-failed', 'One of the estimates could not be calculated.')
+    throw new ComparisonError('calculation-failed', 'One of the estimates could not be calculated.', 'compare.calcErrors.failed')
   }
 
   const bestBy = Object.fromEntries(
@@ -162,7 +172,7 @@ export function rankOptions(options: OptionResult[]): OptionResult[] {
 
 export function findOption(result: ComparisonResult, mode: TransportOptionId): OptionResult {
   const option = result.options.find((entry) => entry.mode === mode)
-  if (!option) throw new ComparisonError('calculation-failed', 'The option is not part of this comparison.')
+  if (!option) throw new ComparisonError('calculation-failed', 'The option is not part of this comparison.', 'compare.calcErrors.notInComparison')
   return option
 }
 
@@ -196,8 +206,11 @@ export function explainRecommendation(result: ComparisonResult): string[] {
     )
     reasons.push(
       tied.length > 0
-        ? `It has the ${criterion.better} of the options you compared (equal with ${listModes(tied.map((option) => option.mode))}).`
-        : `It has the ${criterion.better} of the options you compared.`,
+        ? t('compare.recommendation.winsTied', {
+            better: criterion.better,
+            others: listModes(tied.map((option) => option.mode)),
+          })
+        : t('compare.recommendation.wins', { better: criterion.better }),
     )
   }
 
@@ -205,19 +218,19 @@ export function explainRecommendation(result: ComparisonResult): string[] {
     if (winsOn.some(({ id }) => id === criterion.id)) continue
     const best = findOption(result, result.bestBy[criterion.id])
     reasons.push(
-      `${criterion.label} matters most to you. ${getTransportOption(best.mode).label} is better on that alone, but it does worse on your other priorities.`,
+      t('compare.recommendation.mattersMost', { criterion: criterion.label, option: getTransportOption(best.mode).label }),
     )
   }
 
   if (winsOn.filter(({ id }) => priorities[id] > 0).length < 2) {
-    reasons.push('It gives the best overall balance between the things you said matter to you.')
+    reasons.push(t('compare.recommendation.balance'))
   }
   return reasons
 }
 
-/** Option labels joined for headings, e.g. "Bus, Train and Car". */
+/** Option labels joined for headings, e.g. "Bus, Train and Car", in the current language. */
 export function listModes(modes: TransportOptionId[]): string {
   const labels = modes.map((mode) => getTransportOption(mode).label)
   if (labels.length <= 1) return labels.join('')
-  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`
+  return `${labels.slice(0, -1).join(', ')} ${t('compare.and')} ${labels[labels.length - 1]}`
 }

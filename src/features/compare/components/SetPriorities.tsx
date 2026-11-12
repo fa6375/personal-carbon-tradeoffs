@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Button } from '../../../components/Button'
+import { useI18n } from '../../../i18n'
 import { totalWeight } from '../calculate'
 import type { Priorities } from '../types'
-import { NO_PRIORITY_ERROR } from '../criteria'
 import { PriorityFields } from './PriorityFields'
 
 interface SetPrioritiesProps {
@@ -16,11 +16,12 @@ interface SetPrioritiesProps {
 /** Screen 4 — Set priorities. */
 export function SetPriorities({ initial, onCompare, onBack }: SetPrioritiesProps) {
   const [priorities, setPriorities] = useState(initial)
-  const [error, setError] = useState<string>()
+  const { t } = useI18n()
+  const [error, setError] = useState(false)
 
   function handleCompare() {
     if (totalWeight(priorities) === 0) {
-      setError(NO_PRIORITY_ERROR)
+      setError(true)
       return
     }
     onCompare(priorities)
@@ -28,24 +29,21 @@ export function SetPriorities({ initial, onCompare, onBack }: SetPrioritiesProps
 
   return (
     <div className="compare-step">
-      <p className="compare-lead">
-        How much does each of these matter to you for this trip? The recommendation gives more
-        weight to what matters more. All three are always shown in the results.
-      </p>
+      <p className="compare-lead">{t('compare.priorities.lead')}</p>
       <PriorityFields
         priorities={priorities}
-        error={error}
+        error={error ? t('compare.noPriority') : undefined}
         onChange={(next) => {
           setPriorities(next)
-          if (totalWeight(next) > 0) setError(undefined)
+          if (totalWeight(next) > 0) setError(false)
         }}
       />
       <div className="compare-actions">
         <Button variant="secondary" onClick={() => onBack(priorities)}>
-          Back
+          {t('compare.priorities.back')}
         </Button>
         <Button icon="arrow-right" onClick={handleCompare}>
-          Compare options
+          {t('compare.priorities.compare')}
         </Button>
       </div>
     </div>

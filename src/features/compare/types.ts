@@ -1,4 +1,5 @@
 /** Types for Compare Everyday Choices (Faraj Aliyev). */
+import type { MessageKey, MessageParams } from '../../i18n'
 
 /** The transport alternatives a journey can be compared across. */
 export type TransportOptionId = 'walk' | 'bicycle' | 'bus' | 'train' | 'car' | 'electric-car'
@@ -80,5 +81,9 @@ export type CompareView =
 /** Why the error screen is shown. */
 export interface CompareProblem {
   kind: 'invalid-input' | 'missing-information' | 'calculation-failed' | 'not-found' | 'storage'
+  /** English fallback text. */
   message: string
+  /** Translation key and parameters for the text shown to people. */
+  messageKey?: MessageKey
+  messageParams?: MessageParams
 }

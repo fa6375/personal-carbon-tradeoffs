@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { Button } from '../../../components/Button'
+import { useI18n } from '../../../i18n'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -24,7 +25,9 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useI18n()
   const ref = useRef<HTMLDialogElement>(null)
+  const id = useId()
 
   useEffect(() => {
     const dialog = ref.current
@@ -37,25 +40,25 @@ export function ConfirmDialog({
     <dialog
       ref={ref}
       className="tracking-dialog"
-      aria-labelledby="tracking-dialog-title"
-      aria-describedby="tracking-dialog-message"
+      aria-labelledby={`${id}-title`}
+      aria-describedby={`${id}-message`}
       onCancel={(event) => {
         event.preventDefault()
         if (!busy) onCancel()
       }}
     >
-      <h2 id="tracking-dialog-title" className="tracking-dialog__title">
+      <h2 id={`${id}-title`} className="tracking-dialog__title">
         {title}
       </h2>
-      <p id="tracking-dialog-message" className="tracking-dialog__message">
+      <p id={`${id}-message`} className="tracking-dialog__message">
         {message}
       </p>
       <div className="tracking-dialog__actions">
         <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
-          Cancel
+          {t('actions.cancel')}
         </Button>
         <Button className="button--danger" onClick={onConfirm} disabled={busy}>
-          {busy ? 'Deleting…' : confirmLabel}
+          {busy ? t('actions.deleting') : confirmLabel}
         </Button>
       </div>
     </dialog>

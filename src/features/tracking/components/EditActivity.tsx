@@ -1,4 +1,5 @@
-import { CATEGORY_LABELS } from '../emissionFactors'
+import { useI18n } from '../../../i18n'
+import { categoryLabelLower } from '../labels'
 import type { Activity, ActivityInput } from '../types'
 import { formFromActivity } from '../validation'
 import { ActivityForm } from './ActivityForm'
@@ -12,16 +13,17 @@ interface EditActivityProps {
 
 /** Screen 8 — Edit Activity. The category stays the same; everything else can change. */
 export function EditActivity({ activity, onSave, onCancel }: EditActivityProps) {
+  const { t } = useI18n()
   return (
     <Panel
       id="tracking-edit-title"
-      title={`Edit ${CATEGORY_LABELS[activity.details.category].toLowerCase()} activity`}
-      description="Change the details and save. The estimate updates as you type."
+      title={t('tracking.edit.title', { category: categoryLabelLower(activity.details.category) })}
+      description={t('tracking.edit.description')}
     >
       <ActivityForm
         key={activity.id}
         initialValues={formFromActivity(activity)}
-        submitLabel="Save changes"
+        submitLabel={t('tracking.edit.save')}
         onSubmit={onSave}
         onCancel={onCancel}
       />

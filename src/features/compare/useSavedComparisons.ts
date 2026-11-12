@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { DataError } from '../../lib/dataErrors'
+import { DataError, type DataErrorCode } from '../../lib/dataErrors'
+import { dataErrorCode } from '../../lib/errorMessages'
 import type { SavedComparison } from './types'
 import { useComparisonRepository } from './useComparisonRepository'
 
@@ -9,7 +10,8 @@ interface Loaded {
   key: number
   status: 'ready' | 'error'
   comparisons: SavedComparison[]
-  error: string | null
+  /** Error code; shown with dataErrorText() so it follows the language. */
+  error: DataErrorCode | null
 }
 
 /** Loads the signed-in user's saved comparisons and keeps the list in sync after deletes. */
@@ -28,8 +30,7 @@ export function useSavedComparisons() {
       })
       .catch((reason: unknown) => {
         if (cancelled) return
-        const message = reason instanceof Error ? reason.message : new DataError('unknown').message
-        setLoaded({ key: attempt, status: 'error', comparisons: [], error: message })
+        setLoaded({ key: attempt, status: 'error', comparisons: [], error: dataErrorCode(reason) })
       })
     return () => {
       cancelled = true

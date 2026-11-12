@@ -1,14 +1,16 @@
+import { useI18n } from '../i18n'
 import { PlaceholderPage } from './PlaceholderPage'
 
 export function NotFoundPage() {
+  const { t } = useI18n()
   return (
     <PlaceholderPage
-      title="Page not found"
-      description="The page you were looking for does not exist."
+      title={t('pages.notFound.title')}
+      description={t('pages.notFound.description')}
       icon="info"
-      emptyTitle="Nothing here"
+      emptyTitle={t('pages.notFound.emptyTitle')}
     >
-      <p>Check the address, or use the navigation to find your way.</p>
+      <p>{t('pages.notFound.body')}</p>
     </PlaceholderPage>
   )
 }

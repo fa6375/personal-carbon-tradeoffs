@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { ButtonLink } from '../components/ButtonLink'
 import { EmptyState } from '../components/EmptyState'
 import { PageHeader } from '../components/PageHeader'
+import { useI18n } from '../i18n'
 import type { IconName } from '../types/icons'
 import './PlaceholderPage.css'
 
@@ -21,18 +22,19 @@ export function PlaceholderPage({
   title,
   description,
   icon,
-  emptyTitle = 'Not available yet',
+  emptyTitle,
   children,
 }: PlaceholderPageProps) {
+  const { t } = useI18n()
   return (
     <div className="placeholder-page">
       <PageHeader title={title} description={description} />
       <EmptyState
         icon={icon}
-        title={emptyTitle}
+        title={emptyTitle ?? title}
         action={
           <ButtonLink href="#/" variant="secondary">
-            Back to home
+            {t('actions.backToHome')}
           </ButtonLink>
         }
       >

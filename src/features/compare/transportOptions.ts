@@ -25,6 +25,7 @@
  *     The overhead covers walking to a stop and waiting (public transport),
  *     unlocking and locking a bike, or finding a parking space.
  */
+import { t } from '../../i18n'
 import type { IconName } from '../../types/icons'
 import { transportFactor } from '../tracking/emissionFactors'
 import type { TransportMode } from '../tracking/types'
@@ -49,16 +50,20 @@ export interface TransportOption {
   overheadMinutes: number
   /** Distances above this are flagged as unrealistic for the mode (still calculated). */
   practicalMaxKm?: number
-  /** Plain-language assumptions shown on the breakdown screen. */
+  /** Plain-language assumptions shown on the breakdown screen (translated). */
   assumptions: string
 }
 
 export const TRANSPORT_OPTIONS: TransportOption[] = [
   {
     id: 'walk',
-    label: 'Walking',
+    get label() {
+      return t('compare.options.walk.label')
+    },
     icon: 'walk',
-    description: 'No emissions or cost, but the slowest.',
+    get description() {
+      return t('compare.options.walk.description')
+    },
     trackingMode: 'walk',
     sharedVehicle: false,
     fixedCostEur: 0,
@@ -66,13 +71,19 @@ export const TRANSPORT_OPTIONS: TransportOption[] = [
     speedKmh: 5,
     overheadMinutes: 0,
     practicalMaxKm: 8,
-    assumptions: 'Walking at 5 km/h. No direct emissions and no cost.',
+    get assumptions() {
+      return t('compare.options.walk.assumptions')
+    },
   },
   {
     id: 'bicycle',
-    label: 'Cycling',
+    get label() {
+      return t('compare.options.bicycle.label')
+    },
     icon: 'bicycle',
-    description: 'No emissions, quick for short trips.',
+    get description() {
+      return t('compare.options.bicycle.description')
+    },
     trackingMode: 'bicycle',
     sharedVehicle: false,
     fixedCostEur: 0,
@@ -80,64 +91,85 @@ export const TRANSPORT_OPTIONS: TransportOption[] = [
     speedKmh: 15,
     overheadMinutes: 3,
     practicalMaxKm: 25,
-    assumptions:
-      'Cycling at 15 km/h plus 3 minutes to unlock and lock the bike. Own bike, so no cost per trip.',
+    get assumptions() {
+      return t('compare.options.bicycle.assumptions')
+    },
   },
   {
     id: 'bus',
-    label: 'Bus',
+    get label() {
+      return t('compare.options.bus.label')
+    },
     icon: 'bus',
-    description: 'Shared transport with a fixed fare.',
+    get description() {
+      return t('compare.options.bus.description')
+    },
     trackingMode: 'bus',
     sharedVehicle: false,
     fixedCostEur: 1.5,
     costPerKmEur: 0.05,
     speedKmh: 20,
     overheadMinutes: 10,
-    assumptions:
-      'Average 20 km/h including stops, plus 10 minutes to walk to the stop and wait. Ticket: €1.50 plus €0.05 per km, for each person.',
+    get assumptions() {
+      return t('compare.options.bus.assumptions')
+    },
   },
   {
     id: 'train',
-    label: 'Train',
+    get label() {
+      return t('compare.options.train.label')
+    },
     icon: 'train',
-    description: 'Low emissions, best over longer distances.',
+    get description() {
+      return t('compare.options.train.description')
+    },
     trackingMode: 'train',
     sharedVehicle: false,
     fixedCostEur: 1,
     costPerKmEur: 0.08,
     speedKmh: 60,
     overheadMinutes: 20,
-    assumptions:
-      'Average 60 km/h including stops, plus 20 minutes to reach the station and wait. Ticket: €1.00 plus €0.08 per km, for each person.',
+    get assumptions() {
+      return t('compare.options.train.assumptions')
+    },
   },
   {
     id: 'car',
-    label: 'Car',
+    get label() {
+      return t('compare.options.car.label')
+    },
     icon: 'car',
-    description: 'Petrol car. Emissions and cost are shared by everyone in it.',
+    get description() {
+      return t('compare.options.car.description')
+    },
     trackingMode: 'car-petrol',
     sharedVehicle: true,
     fixedCostEur: 2,
     costPerKmEur: 0.12,
     speedKmh: 40,
     overheadMinutes: 5,
-    assumptions:
-      'Average 40 km/h including traffic, plus 5 minutes to park. Fuel: €0.12 per km, parking: €2.00 per trip, shared by everyone in the car.',
+    get assumptions() {
+      return t('compare.options.car.assumptions')
+    },
   },
   {
     id: 'electric-car',
-    label: 'Electric car',
+    get label() {
+      return t('compare.options.electric-car.label')
+    },
     icon: 'bolt',
-    description: 'Lower emissions than petrol, shared by everyone in it.',
+    get description() {
+      return t('compare.options.electric-car.description')
+    },
     trackingMode: 'car-electric',
     sharedVehicle: true,
     fixedCostEur: 2,
     costPerKmEur: 0.05,
     speedKmh: 40,
     overheadMinutes: 5,
-    assumptions:
-      'Average 40 km/h including traffic, plus 5 minutes to park. Charging: €0.05 per km, parking: €2.00 per trip, shared by everyone in the car. Emissions depend on how the electricity is produced.',
+    get assumptions() {
+      return t('compare.options.electric-car.assumptions')
+    },
   },
 ]
 

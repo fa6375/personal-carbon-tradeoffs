@@ -2,7 +2,7 @@
 
 Carbon Choices is a mobile-first web application that helps people understand and manage the environmental impact of their everyday decisions. It brings three feature areas together in one product: comparing everyday choices, setting carbon reduction goals and tracking personal carbon emissions. It implements the **Personal Carbon Trade-Offs** topic for **ISTE.260 – Designing the User Experience**, Deliverable 2.
 
-> **Status:** early development. All three feature areas are integrated in one app with **Firebase Authentication** (email and password) and **Cloud Firestore** as the shared database: activities, saved comparisons and carbon plans are stored per user and survive a reload. Journey distances can be looked up with **OpenStreetMap** (Nominatim + OSRM). Emission, cost and time figures are illustrative estimates. Localisation is not implemented yet. See [Current Development Status](#current-development-status).
+> **Status:** early development. All three feature areas are integrated in one app with **Firebase Authentication** (email and password) and **Cloud Firestore** as the shared database: activities, saved comparisons and carbon plans are stored per user and survive a reload. Journey distances can be looked up with **OpenStreetMap** (Nominatim + OSRM). Emission, cost and time figures are illustrative estimates. The interface is available in **English, Croatian and German**. See [Current Development Status](#current-development-status).
 
 ---
 
@@ -207,13 +207,14 @@ The feature is at `#/tracking` ("Carbon tracking" in the navigation). It impleme
 |---|---|
 | Application shell: sidebar on desktop, hamburger menu on mobile | ✅ |
 | Home dashboard with introduction, three information cards and "How it works" | ✅ |
-| Placeholder page for Settings, and a "Page not found" page | ✅ |
+| Settings page with the language choice, and a "Page not found" page | ✅ |
 | Reusable UI components and design tokens | ✅ |
 | Navigation entry for Goals (`#/goals`) | ✅ |
 | Navigation entry for Tracking (`#/tracking`) | ✅ |
 | Account page (`#/account`): sign in, create an account, sign out, import browser data | ✅ |
 | Sign-in required for Carbon tracking, Carbon goals and Saved comparisons | ✅ Home and Compare work without an account; saving a comparison asks to sign in |
-| Settings (including language selection) | 📋 (placeholder page at `#/settings`) |
+| Language selection (English, Croatian, German) in the sidebar, mobile menu and Settings | ✅ Saved in the browser; see [Internationalization](#internationalization) |
+| App-wide offline notice; offline-aware saving in Tracking, Goals, Compare and sign-in | ✅ |
 
 > Navigation currently contains Home, Compare journeys, Saved comparisons, Carbon goals, Carbon tracking, Account and Settings.
 
@@ -247,12 +248,15 @@ Versions are taken from `package.json` and the installed `node_modules`.
 | [Firebase JS SDK](https://firebase.google.com/docs/web/setup) (modular) | 12.19.0 | Authentication and Cloud Firestore |
 | [Vitest](https://vitest.dev/) | 4.1.12 | Unit and integration tests |
 | [@firebase/rules-unit-testing](https://firebase.google.com/docs/rules/unit-tests) | 5.0.2 | Security Rules tests |
+| [jsdom](https://github.com/jsdom/jsdom) | 26.1.0 | Browser-like DOM for component tests |
+| [@testing-library/react](https://testing-library.com/docs/react-testing-library/intro/) / [@testing-library/dom](https://testing-library.com/docs/dom-testing-library/intro) | 16.3.3 / 10.4.2 | Rendering and querying components in tests |
+| [axe-core](https://github.com/dequelabs/axe-core) | 4.14.0 | Automated accessibility checks in tests |
 | [firebase-tools](https://github.com/firebase/firebase-tools) | 15.36.0 | Local emulators and deploying rules (dev dependency, run with `npx firebase` or the npm scripts) |
 
 Notes:
 
 - There is **no router library**. Navigation uses a small hash-based router in `src/hooks/useHashRoute.ts` (routes: `#/`, `#/compare`, `#/saved`, `#/goals`, `#/tracking`, `#/account`, `#/settings`).
-- There is **no custom backend server**: the browser talks to Firebase directly, and Firestore Security Rules enforce who may read and write what. No i18n library is installed yet.
+- There is **no custom backend server**: the browser talks to Firebase directly, and Firestore Security Rules enforce who may read and write what. Localization uses a small typed module in `src/i18n` with `Intl` for plurals and formatting, instead of an i18n library.
 - `package.json` pins `@firebase/app` and `@firebase/app-compat` through `overrides`. Without it npm installed two copies of `@firebase/app`, and Firebase Auth and Firestore failed with "Component … has not been registered".
 - The router ignores a query part in the hash, so `#/compare?saved=<id>` opens the Compare page with a saved comparison (used by Saved comparisons). The address is reset to `#/compare` once it has opened.
 
@@ -280,15 +284,25 @@ personal-carbon-tradeoffs/
 │   │   ├── Footer.tsx
 │   │   ├── Icon.tsx           #   Inline SVG icon set
 │   │   ├── InfoCard.tsx
+│   │   ├── LanguageSelect.tsx #  Language picker (sidebar, mobile menu, Settings)
 │   │   ├── Logo.tsx
 │   │   ├── MobileHeader.tsx   #   Top bar + hamburger menu (below 960px)
 │   │   ├── NavList.tsx        #   Navigation links shared by sidebar and mobile menu
+│   │   ├── OfflineBanner.tsx  #   App-wide "you are offline / back online" notice
 │   │   ├── PageHeader.tsx
 │   │   ├── SectionHeading.tsx
 │   │   └── Sidebar.tsx        #   Desktop navigation (960px and wider)
 │   ├── data/                  # Static content and configuration
 │   │   ├── homeContent.ts     #   Text for the home dashboard
 │   │   └── navigation.ts      #   Navigation items and route mapping
+│   ├── i18n/                  # Localization: translate, plurals, language choice, Intl formatters
+│   │   ├── locales/           #   en/, hr/, de/ — messages split into common, compare, goals, tracking
+│   │   ├── i18n.test.ts       #   Completeness, plurals and formatting tests
+│   │   └── localeStore.test.ts #  Saved language, browser default, <html lang>
+│   ├── test/                  # Component tests (jsdom + Testing Library + axe-core)
+│   │   ├── accessibility.test.tsx # axe scans, keyboard, dialogs, language switching, missing keys
+│   │   ├── uiStates.test.tsx  #   Loading, empty, error and offline states
+│   │   └── dom.ts             #   Test helpers and small stand-ins for browser APIs jsdom lacks
 │   ├── features/              # Feature-specific code, one folder per feature area
 │   │   └── account/           #   Shared: import of data saved in the browser (localImport.ts, LocalImportPanel.tsx)
 │   │   └── auth/              #   Shared: Firebase Auth service, AuthProvider, sign-in form, RequireAuth gate
@@ -379,6 +393,7 @@ personal-carbon-tradeoffs/
 - Colours, spacing and typography are defined once in `src/styles/tokens.css`; components use these variables instead of hard-coded values.
 - Each component keeps its CSS file next to it, so team members can work on different features without editing the same files.
 - New screens go in `src/pages/` and are registered in `src/data/navigation.ts` and `src/App.tsx`.
+- Every user-visible text goes through `t()` from `src/i18n` (see [Internationalization](#internationalization)); add new texts to all three languages.
 - Code that belongs to only one feature area goes in `src/features/<feature>/`, so each team member mostly edits their own folder. Changes to shared files (navigation, routing, `App.tsx`, shared components) should stay small and be mentioned in the Pull Request.
 
 ---
@@ -620,21 +635,67 @@ Emission factors still come from the illustrative table in `src/features/trackin
 
 ## Internationalization
 
-The application must support at least three locales:
+The whole interface is available in three languages:
 
-| Locale | Requirement |
+| Locale | Language | Notes |
+|---|---|---|
+| `en` | English | Source language and fallback |
+| `hr` | Croatian (Hrvatski) | Three plural forms (one / few / other) |
+| `de` | German (Deutsch) | Third project language |
+
+Everything people see is translated: navigation, the home page, Compare, Saved comparisons, Carbon goals, Carbon tracking, Account and sign-in, Settings, buttons, labels and hints, validation messages, confirmation dialogs, loading, empty, error and offline messages, database, sign-in and map-service errors, and the labels and live announcements used by screen readers. User-entered data (notes, place names, comparison names) and technical identifiers are not translated.
+
+### How it works
+
+The localization system is a small, typed module in `src/i18n` (no extra library):
+
+| File | Purpose |
 |---|---|
-| English (`en`) | Required — source language and fallback |
-| Croatian (`hr`) | Required |
-| Third language | Required — not chosen yet |
+| `locales/en/*.ts` | English messages, split by area: `common` (shell, errors, auth, account, map lookup, home), `compare`, `goals`, `tracking` |
+| `locales/hr/*.ts`, `locales/de/*.ts` | Croatian and German messages with exactly the same keys. Each file is typed as `MessageShape<typeof en…>`, so **a missing or extra key is a TypeScript error** and `npm run build` fails |
+| `translate.ts` | Looks up a key, fills in `{placeholders}` (numbers are formatted for the language) and chooses plural forms with `Intl.PluralRules` |
+| `localeStore.ts` | Current language: reads the saved choice, falls back to the browser language, saves changes and keeps `<html lang>` in sync |
+| `format.ts` | `Intl` formatters for numbers, kg CO₂e, percentages, euro amounts, dates, months and durations |
+| `index.ts` | `useI18n()` for components and `t()` / `format()` for code outside React |
+| `RichText.tsx` | Puts elements (for example `<strong>` or links) into a translated sentence, so word order can differ between languages |
 
-The brief also requires that every user-visible string is externalised, that plurals, dates, numbers and currencies use locale-aware formatting, that the HTML `lang` attribute follows the selected locale, and that the chosen locale persists across reloads.
+In a component:
 
-**Current state: localization is not implemented.** The interface is English only, strings are currently written directly in components, in `src/data/homeContent.ts`, in `src/features/goals/`, `src/features/tracking/` and `src/features/compare/` (numbers, currency, dates and plurals in these features already go through `Intl` formatters in their `format.ts`, fixed to English), no i18n library is installed, and there is no language switcher. `index.html` sets `lang="en"`.
+```tsx
+const { t, format } = useI18n()
+t('nav.compare')                               // "Compare journeys" / "Usporedba putovanja" / "Wege vergleichen"
+t('tracking.activityCount', { count: 3 })      // "3 activities" / "3 aktivnosti" / "3 Aktivitäten"
+format.currency(3.2)                           // "€3.20" / "3,20 €" / "3,20 €"
+```
 
-Errors from the database, sign-in and the map service are already returned as codes, with their English text kept in one file per area (`src/lib/errorMessages.ts`, `src/features/auth/authMessages.ts`, `src/features/routing/routeMessages.ts`), so they can be translated without changing the services.
+Plural messages are objects with `Intl.PluralRules` categories, for example `{ one: '{count} aktivnost', few: '{count} aktivnosti', other: '{count} aktivnosti' }`. Croatian always needs `one`, `few` and `other`; English and German need `one` and `other`.
 
-How to add a new locale will be documented here once the i18n setup is in place.
+**Switching languages** updates the interface immediately without a reload: `App` reads the language, so the whole page re-renders and keeps what the user has typed. Errors and validation messages are stored as codes or keys, not as text, so they also change language.
+
+**Errors from the services** keep their stable codes from PR #7 (`DataError`, `AuthError`, `RouteError`). `dataErrorText()` in `src/lib/errorMessages.ts`, `authErrorText()` and `routeErrorMessage()` turn a code into text in the current language. The English defaults in `errorMessages.ts` are still used as `Error.message` for logs and tests.
+
+### Choosing and remembering the language
+
+- The language selector is at the bottom of the sidebar (desktop), in the menu (mobile) and on the Settings page. Each language is written in its own language and marked with its `lang`.
+- The choice is saved in this browser's `localStorage` (`carbon-choices.locale`) and used on every later visit.
+- With no saved choice, the first supported browser language (`navigator.languages`, e.g. `hr-HR` → Croatian) is used; otherwise English.
+- `<html lang>` and the page title always follow the selected language, and the change is announced to screen readers in the new language.
+- The language is a device preference; it is not stored in the user's Firebase account.
+
+### Adding or changing translations
+
+1. Find the key in `src/i18n/locales/en/<area>.ts` (for example `goals.setup.title`).
+2. Change the text in `en`, `hr` and `de`. Keep every `{placeholder}` in all three languages.
+3. For a new text: add the key to `en`, use it with `t('area.key')`, then add it to `hr` and `de`. TypeScript reports where it is missing.
+4. Run `npm test`: `src/i18n/i18n.test.ts` checks that all languages have the same keys and placeholders, that no text is empty and that Croatian has all three plural forms. `src/test/accessibility.test.tsx` renders the main screens in Croatian and German and fails if a key is missing at run time.
+
+### Adding a new language
+
+1. Add the code to `Locale` in `src/i18n/types.ts` and to `SUPPORTED_LOCALES` in `src/i18n/localeStore.ts`.
+2. Copy `src/i18n/locales/de` to a new folder (for example `locales/it`), translate every file and rename the exported constant in its `index.ts`.
+3. Register it in `src/i18n/locales/index.ts` and add its name to `language.names` in all locales.
+4. Check the plural categories of the language (`new Intl.PluralRules('it').resolvedOptions().pluralCategories`) and provide each one.
+5. Run `npm run build` and `npm test`.
 
 ---
 
@@ -684,15 +745,35 @@ The project targets **WCAG 2.2 level AA**, as required by the course brief.
 - Deleting a saved comparison uses the native `<dialog>` with focus on Cancel and <kbd>Esc</kbd> to cancel.
 - Checked in the browser at 320 px, 375 px and about 1000 px wide with no horizontal page scrolling (wide tables scroll inside their own box).
 
-### Not done yet
+### Localization, accessibility and UI states (whole app)
 
-- The course's ten-minute accessibility check (Section 7.3 of the brief) has not been performed.
-- No automated accessibility scan or screen reader walkthrough has been recorded.
-- Contrast ratios have not been formally measured with a checking tool.
-- 200% zoom has not been tested.
-- The forms, error messages and live regions in the Goals, Tracking and Compare features have not been tested with a screen reader.
+- The language selector is a labelled native `<select>`; each option is marked with its own `lang`, and the change is announced in a `role="status"` region. `<html lang>` follows the selected language.
+- Every form in the app marks required fields in the label ("required" / "obavezno" / "Pflichtfeld") and with `required`; errors are linked to their fields with `aria-describedby` and `aria-invalid`, and form errors are announced with `role="alert"`.
+- Confirmation dialogs (Tracking, Compare, Goals) use the native `<dialog>`: focus starts on Cancel, <kbd>Esc</kbd> cancels (but not while a delete is running), and each dialog now has its own ids, so two dialogs never share labels.
+- Links that open in a new tab (map credits) say so to screen readers.
+- An app-wide connection notice (`role="status"`) says when the browser goes offline and when it is back online.
+- Loading, saving and errors are announced through live regions; save buttons are disabled while saving and repeated clicks are ignored.
 
-Results will be recorded here and in the Deliverable 2 document as testing is carried out.
+### Accessibility testing performed
+
+| Check | How | Result |
+|---|---|---|
+| Automated rules | `axe-core` on 27 rendered screens (app shell, home, settings, not found, sign-in and registration, all Tracking forms and states, all ten Goals screens, all Compare screens) in `src/test/accessibility.test.tsx` | No violations (colour contrast is excluded there because jsdom cannot compute colours; see the next row) |
+| Contrast | `src/styles/styles.test.ts` computes WCAG contrast ratios from the design tokens and the warning/error colours | All text pairs ≥ 4.5:1; focus outline ≥ 3:1 against page and surface |
+| Keyboard | Tests: skip link is the first focusable element and moves focus to the main content; the menu button has a name and `aria-expanded`, <kbd>Esc</kbd> closes the menu and returns focus; dialogs focus Cancel and cancel with <kbd>Esc</kbd>; the first invalid field receives focus | Pass |
+| Focus visible and reduced motion | `styles.test.ts` checks the 2 px `:focus-visible` outline, that no stylesheet removes it, and the `prefers-reduced-motion` rules | Pass |
+| Touch targets | Reviewed in CSS: buttons, links styled as buttons, tabs, steps and the menu button are at least 44 × 44 px | Pass (manual review) |
+| 320 px and long text | In the browser at 320 px, every page and the whole Compare flow in English, Croatian and German | No horizontal scrolling (wide tables scroll inside their own box) |
+| 200% zoom | Simulated with a 640 px wide viewport (a 1280 px window at 200%), main pages in German | No horizontal scrolling or clipped text |
+
+### Known accessibility limitations
+
+- No screen reader walkthrough (NVDA, VoiceOver or TalkBack) has been recorded yet.
+- The course's ten-minute accessibility check (Section 7.3 of the brief) has not been performed and documented yet.
+- Colour contrast was computed for the design tokens and status colours, not measured on every rendered element with a browser tool.
+- 200% zoom was simulated with a narrow viewport, not tested with real browser zoom on every page.
+- Component tests run in jsdom, which does not do layout; the `<dialog>` focus trap itself is provided by the browser and was not tested there.
+- The app has not had a full WCAG 2.2 AA audit, so it does not claim full conformance.
 
 ---
 
@@ -700,8 +781,8 @@ Results will be recorded here and in the Deliverable 2 document as testing is ca
 
 | Command | What it runs | Needs |
 |---|---|---|
-| `npm test` | 17 unit tests: the route service (success, empty result, malformed responses, network failure, timeout, HTTP 429/5xx/401/400, NoRoute, caching with expiry, throttling), data error mapping and timeouts, credential validation, shared emission factors in Compare and Tracking, and import ids | Nothing |
-| `npm run test:emulator` | 17 tests against the Auth and Firestore emulators with the real `firestore.rules`: 10 rules tests (owners can read and write their data; other users and signed-out visitors cannot read, list, write or delete; invalid activities, comparisons, plans and profiles are rejected; `createdAt` is fixed; saved comparisons cannot be edited) and 7 tests of the app's own auth service and repositories (register, profile document, sign out, wrong password, duplicate email, sign in; activity create/read/update/list/delete, persistence seen from a second client, live updates, access to another user's data refused; comparison save/list/get/delete; plan create/update/load/delete keeping `createdAt`; import twice without duplicates) | Java 11+ (the emulators run on Java), and network access the first time to download the emulators |
+| `npm test` | 162 tests. Unit tests: the route service (success, empty result, malformed responses, network failure, timeout, HTTP 429/5xx/401/400, NoRoute, caching with expiry, throttling), data error mapping and timeouts, credential validation, shared emission factors in Compare and Tracking, and import ids. Localization: same keys and placeholders in all languages, Croatian plurals, `Intl` formatting, saved language and `<html lang>`. Component tests (jsdom): axe-core on 27 screens, every screen rendered in Croatian and German without missing keys, language switching, keyboard and dialog behaviour, loading/empty/error/offline states. CSS checks: focus outline, reduced motion, contrast | Nothing |
+| `npm run test:emulator` | 17 tests against the Auth and Firestore emulators with the real `firestore.rules`: 10 rules tests (owners can read and write their data; other users and signed-out visitors cannot read, list, write or delete; invalid activities, comparisons, plans and profiles are rejected; `createdAt` is fixed; saved comparisons cannot be edited) and 7 tests of the app's own auth service and repositories (register, profile document, sign out, wrong password, duplicate email, sign in; activity create/read/update/list/delete, persistence seen from a second client, live updates, access to another user's data refused; comparison save/list/get/delete; plan create/update/load/delete keeping `createdAt`; import twice without duplicates) | Java 21+ (firebase-tools 15 refuses older Java), and network access the first time to download the emulators |
 
 The emulators use the demo project id `demo-carbon-choices`, so `npm test` and `npm run test:emulator` never touch the real database. Only `npm run test:live` uses the real project. It needs `.env.local`, creates two accounts named `carbon-choices-test-…@example.com`, and deletes them and all their records at the end. It does not read or change anyone else's data.
 
@@ -779,15 +860,16 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 | Authentication (email and password) | ✅ Firebase Authentication |
 | Database | ✅ Cloud Firestore with Security Rules, deployed to `personal-carbon-tradeoff` and verified with `npm run test:live` |
 | External REST API | ✅ OpenStreetMap Nominatim + OSRM for journey distances |
-| Internationalization (en, hr, third locale) | 📋 Planned |
-| Accessibility testing and report | 📋 Planned |
-| Automated tests | ✅ Vitest unit tests and emulator tests for rules and repositories; no UI tests |
+| Internationalization (en, hr, de) | ✅ Whole interface, plurals, `Intl` formatting, saved language choice |
+| Accessibility | 🚧 Improvements and automated checks done (axe-core, keyboard, contrast, 320 px, simulated 200% zoom); screen reader walkthrough and the course's accessibility check still to do |
+| Loading, empty, error and offline states | ✅ In every feature, with translated messages and retry |
+| Automated tests | ✅ Vitest unit, localization and component tests (jsdom) and emulator tests for rules and repositories; no end-to-end browser tests |
 
 ---
 
 ## Known Limitations
 
-- Settings shows a "not available yet" page.
+- Settings only offers the language choice so far.
 - Compare uses one distance for all options (typed, or chosen from the OpenStreetMap lookup) and illustrative cost, speed and waiting-time assumptions, not real fares, timetables or traffic. Car costs leave out purchase, insurance and maintenance.
 - The distance lookup uses free public OpenStreetMap services with no uptime guarantee and a one-request-per-second limit. It looks up one place per field (the best match), so an ambiguous name can find the wrong place; the found names are shown so the user can check.
 - The comparison in progress and the screen within Compare journeys are not part of the URL, so reloading or leaving the page returns to the start screen (saved comparisons can be reopened).
@@ -802,11 +884,12 @@ Then open a Pull Request on GitHub against `main` and request a review from a te
 - Changes to `firestore.rules` take effect only after `npm run deploy:rules` (needs a Firebase login with access to the project).
 - No email verification, password reset or account deletion in the app.
 - Offline use is limited: Firestore keeps its cache in memory only, so a page reload while offline shows "The database cannot be reached". Writes made while the connection drops are queued by Firestore, but the app reports a timeout after 15 s if the server has not confirmed them.
-- The production bundle is about 960 kB (280 kB gzipped), mainly the Firebase SDK; it is not split by page yet.
-- The interface is English only, and user-visible strings are not externalised.
+- The production bundle is about 1.1 MB (325 kB gzipped), mainly the Firebase SDK and the messages for all three languages; it is not split by page or language yet.
+- The language choice is saved per browser, not in the user's account. Data that users type (notes, place names, comparison names) is shown as entered, not translated.
+- The Croatian and German translations were written for this project and have not yet been reviewed by a native speaker outside the team.
 - Routing is hash-based (`#/compare`), so URLs contain a `#`.
-- There are no automated UI (browser) tests; the screens were checked by hand.
+- There are component tests in jsdom but no end-to-end tests in a real browser; the screens were also checked by hand.
 - No dark mode.
 - The font falls back to the system font; Inter is used only if it is already installed on the device.
-- The accessibility items listed under [Not done yet](#not-done-yet) have not been verified.
+- The accessibility items listed under [Known accessibility limitations](#known-accessibility-limitations) have not been verified.
 - No license file has been added to the repository.

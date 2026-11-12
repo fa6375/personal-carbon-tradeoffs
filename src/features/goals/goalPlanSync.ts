@@ -8,12 +8,16 @@
  * - If loading fails, the screens show an error instead of a plan, so the user
  *   never mistakes an unsaved default plan for their own.
  *
+ * - While the browser is offline nothing is sent; the change is kept in memory,
+ *   the bar says it is not saved yet, and saving starts again automatically
+ *   when the connection returns (or with "Try saving again").
+ *
  * This runs outside React so a save that is still waiting is not lost when the
  * user leaves the Goals page.
  */
 import { onAuthStateChanged } from 'firebase/auth'
 import { useEffect, useSyncExternalStore } from 'react'
-import { DataError, toDataError } from '../../lib/dataErrors'
+import { DataError, toDataError, type DataErrorCode } from '../../lib/dataErrors'
 import { getFirebase } from '../../lib/firebase'
 import { createInitialPlan } from './goalPlanReducer'
 import { createFirestoreGoalPlanRepository, type GoalPlanRepository } from './goalPlanRepository'
@@ -21,13 +25,14 @@ import { getGoalsSession, replaceGoalPlan, subscribeGoalsSession } from './goalP
 import type { GoalPlan } from './types'
 
 export type GoalSyncLoad = 'idle' | 'loading' | 'ready' | 'error'
-/** new = not saved yet, pending = waiting to save, saving, saved, error. */
-export type GoalSyncSave = 'new' | 'pending' | 'saving' | 'saved' | 'error'
+/** new = not saved yet, pending = waiting to save, saving, saved, offline = waiting for the connection, error. */
+export type GoalSyncSave = 'new' | 'pending' | 'saving' | 'saved' | 'offline' | 'error'
 
 export interface GoalSyncState {
   load: GoalSyncLoad
   save: GoalSyncSave
-  error: string | null
+  /** Error code; shown with dataErrorText() so it follows the language. */
+  error: DataErrorCode | null
   /** ISO timestamp of the last successful save in this session. */
   savedAt: string | null
   createdAt: string | null
@@ -59,6 +64,10 @@ async function saveNow() {
   if (!repository || state.load !== 'ready') return
   const plan = getGoalsSession().plan
   if (plan === lastSaved) return
+  if (isBrowserOffline()) {
+    setState({ save: 'offline', error: null })
+    return
+  }
   const run = generation
   setState({ save: 'saving', error: null })
   try {
@@ -71,7 +80,7 @@ async function saveNow() {
     if (getGoalsSession().plan !== lastSaved) scheduleSave()
   } catch (reason) {
     if (run !== generation) return
-    setState({ save: 'error', error: toDataError(reason).message })
+    setState({ save: isBrowserOffline() ? 'offline' : 'error', error: toDataError(reason).code })
   }
 }
 
@@ -79,6 +88,18 @@ function scheduleSave() {
   if (timer) clearTimeout(timer)
   setState({ save: 'pending' })
   timer = setTimeout(() => void saveNow(), SAVE_DELAY_MS)
+}
+
+function isBrowserOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false
+}
+
+// Save what is waiting as soon as the connection returns.
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    if (state.load === 'ready' && (state.save === 'offline' || state.save === 'error')) void saveNow()
+    else if (state.load === 'error') void load()
+  })
 }
 
 // Save whenever the plan in the store changes after it was loaded.
@@ -100,7 +121,7 @@ async function load() {
     setState({ load: 'ready', save: exists ? 'saved' : 'new', createdAt: stored?.createdAt ?? null, savedAt: null })
   } catch (reason) {
     if (run !== generation) return
-    setState({ load: 'error', error: toDataError(reason).message })
+    setState({ load: 'error', error: toDataError(reason).code })
   }
 }
 

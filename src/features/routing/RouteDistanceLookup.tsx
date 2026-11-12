@@ -1,23 +1,11 @@
 import { useId, useState } from 'react'
 import { Button } from '../../components/Button'
+import { isOffline } from '../../hooks/useOnlineStatus'
+import { useI18n } from '../../i18n'
+import { RichText } from '../../i18n/RichText'
 import { routeErrorMessage } from './routeMessages'
 import { getRouteService, RouteError, type JourneyRoutes, type RouteProfile } from './routeService'
 import './routing.css'
-
-const PROFILE_LABELS: Record<RouteProfile, string> = {
-  driving: 'By car',
-  cycling: 'By bike',
-  walking: 'On foot',
-}
-
-const number = new Intl.NumberFormat('en', { maximumFractionDigits: 1 })
-
-function duration(minutes: number): string {
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  if (hours === 0) return `${minutes} min`
-  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`
-}
 
 interface RouteDistanceLookupProps {
   /** Places typed elsewhere in the form (Compare). Leave out to show this component's own fields (Tracking). */
@@ -28,11 +16,13 @@ interface RouteDistanceLookupProps {
   onUse: (km: number, profile: RouteProfile) => void
 }
 
+type LookupError = { kind: 'missing' } | { kind: 'route'; code: RouteError['code']; place?: RouteError['place'] }
+
 type State =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'done'; routes: JourneyRoutes }
-  | { status: 'error'; message: string }
+  | { status: 'error'; error: LookupError }
 
 /**
  * Optional helper that looks up the distance between two places with
@@ -40,6 +30,7 @@ type State =
  * chooses which distance to use, and can always type one instead.
  */
 export function RouteDistanceLookup({ from, to, preferred = 'driving', onUse }: RouteDistanceLookupProps) {
+  const { t, format } = useI18n()
   const standalone = from === undefined || to === undefined
   const [ownFrom, setOwnFrom] = useState('')
   const [ownTo, setOwnTo] = useState('')
@@ -50,8 +41,13 @@ export function RouteDistanceLookup({ from, to, preferred = 'driving', onUse }: 
   const toText = standalone ? ownTo : to
 
   async function lookUp() {
+    if (state.status === 'loading') return
     if (!fromText.trim() || !toText.trim()) {
-      setState({ status: 'error', message: 'Enter both a starting point and a destination first.' })
+      setState({ status: 'error', error: { kind: 'missing' } })
+      return
+    }
+    if (isOffline()) {
+      setState({ status: 'error', error: { kind: 'route', code: 'network' } })
       return
     }
     setState({ status: 'loading' })
@@ -59,64 +55,75 @@ export function RouteDistanceLookup({ from, to, preferred = 'driving', onUse }: 
     try {
       setState({ status: 'done', routes: await getRouteService().findJourney(fromText, toText) })
     } catch (reason) {
-      setState({
-        status: 'error',
-        message: reason instanceof RouteError ? routeErrorMessage(reason) : routeErrorMessage(new RouteError('network')),
-      })
+      const error = reason instanceof RouteError ? reason : new RouteError('network')
+      setState({ status: 'error', error: { kind: 'route', code: error.code, place: error.place } })
     }
   }
 
-  const profiles: RouteProfile[] = [preferred, ...(['driving', 'cycling', 'walking'] as RouteProfile[]).filter((p) => p !== preferred)]
+  const profiles: RouteProfile[] = [
+    preferred,
+    ...(['driving', 'cycling', 'walking'] as RouteProfile[]).filter((p) => p !== preferred),
+  ]
+  const externalLink = (href: string, label: string) => (
+    <a href={href} target="_blank" rel="noreferrer">
+      {label}
+      <span className="visually-hidden"> {t('routing.newTab')}</span>
+    </a>
+  )
 
   return (
     <div className="route-lookup" role="group" aria-labelledby={`${id}-title`}>
       <p id={`${id}-title`} className="route-lookup__title">
-        Find the distance on a map <span className="route-lookup__optional">(optional)</span>
+        {t('routing.title')} <span className="route-lookup__optional">{t('actions.optional')}</span>
       </p>
       {standalone && (
         <div className="route-lookup__fields">
           <label className="route-lookup__field">
-            <span>From</span>
-            <input value={ownFrom} maxLength={200} onChange={(event) => setOwnFrom(event.target.value)} />
+            <span>{t('routing.from')}</span>
+            <input value={ownFrom} maxLength={200} autoComplete="off" onChange={(event) => setOwnFrom(event.target.value)} />
           </label>
           <label className="route-lookup__field">
-            <span>To</span>
-            <input value={ownTo} maxLength={200} onChange={(event) => setOwnTo(event.target.value)} />
+            <span>{t('routing.to')}</span>
+            <input value={ownTo} maxLength={200} autoComplete="off" onChange={(event) => setOwnTo(event.target.value)} />
           </label>
         </div>
       )}
       <div>
         <Button variant="secondary" onClick={lookUp} disabled={state.status === 'loading'}>
-          {state.status === 'loading' ? 'Looking up…' : 'Look up distance'}
+          {state.status === 'loading' ? t('routing.lookingUp') : t('routing.lookUp')}
         </Button>
       </div>
 
       <div aria-live="polite">
-        {state.status === 'loading' && <p className="route-lookup__muted">Finding the places and routes. This takes a few seconds.</p>}
+        {state.status === 'loading' && <p className="route-lookup__muted">{t('routing.loading')}</p>}
         {state.status === 'error' && (
           <p className="route-lookup__error" role="alert">
-            {state.message}
+            {state.error.kind === 'missing' ? t('routing.enterBoth') : routeErrorMessage(state.error)}
           </p>
         )}
         {state.status === 'done' && (
           <div className="route-lookup__result">
             <p className="route-lookup__muted">
-              From <strong>{state.routes.from.name}</strong> to <strong>{state.routes.to.name}</strong>. Check these are
-              the places you meant.
+              <RichText
+                text={t('routing.result')}
+                values={{
+                  from: <strong>{state.routes.from.name}</strong>,
+                  to: <strong>{state.routes.to.name}</strong>,
+                }}
+              />
             </p>
             <ul className="route-lookup__list">
               {profiles.map((profile) => {
                 const distance = state.routes.distances[profile]
+                const km = distance ? format.number(distance.km) : ''
                 return (
                   <li key={profile}>
                     <span>
-                      {PROFILE_LABELS[profile]}:{' '}
+                      {t(`routing.profiles.${profile}`)}:{' '}
                       {distance ? (
-                        <strong>
-                          {number.format(distance.km)} km (about {duration(distance.minutes)})
-                        </strong>
+                        <strong>{t('routing.distance', { km, duration: format.minutes(distance.minutes) })}</strong>
                       ) : (
-                        'no route found'
+                        t('routing.noRoute')
                       )}
                     </span>
                     {distance && (
@@ -127,32 +134,27 @@ export function RouteDistanceLookup({ from, to, preferred = 'driving', onUse }: 
                           setUsed(profile)
                         }}
                       >
-                        {used === profile ? 'Used ✓' : `Use ${number.format(distance.km)} km`}
+                        {used === profile ? t('routing.used') : t('routing.use', { km })}
                       </Button>
                     )}
                   </li>
                 )
               })}
             </ul>
-            <p className="route-lookup__muted">Route times are the map service's estimates and are not used in the results.</p>
+            <p className="route-lookup__muted">{t('routing.timesNote')}</p>
           </div>
         )}
       </div>
 
       <p className="route-lookup__credit">
-        Places and routes ©{' '}
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-          OpenStreetMap contributors
-        </a>
-        , found with{' '}
-        <a href="https://nominatim.org/" target="_blank" rel="noreferrer">
-          Nominatim
-        </a>{' '}
-        and{' '}
-        <a href="https://project-osrm.org/" target="_blank" rel="noreferrer">
-          OSRM
-        </a>
-        . Free public services without guaranteed availability.
+        <RichText
+          text={t('routing.credit')}
+          values={{
+            osm: externalLink('https://www.openstreetmap.org/copyright', t('routing.osm')),
+            nominatim: externalLink('https://nominatim.org/', 'Nominatim'),
+            osrm: externalLink('https://project-osrm.org/', 'OSRM'),
+          }}
+        />
       </p>
     </div>
   )

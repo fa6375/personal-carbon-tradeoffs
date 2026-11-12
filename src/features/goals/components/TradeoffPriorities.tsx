@@ -1,4 +1,5 @@
 import { useState, type Dispatch } from 'react'
+import { useI18n } from '../../../i18n'
 import { getCategoryGaps, rankOpportunities } from '../budget'
 import type { GoalPlanAction } from '../goalPlanReducer'
 import { getPriority, OPPORTUNITIES } from '../sampleData'
@@ -12,6 +13,7 @@ interface TradeoffPrioritiesProps {
 
 /** Screen 4 – Trade-off priorities. */
 export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) {
+  const { t } = useI18n()
   const [announcement, setAnnouncement] = useState('')
   const topIdea = rankOpportunities(OPPORTUNITIES, plan.priorities, getCategoryGaps(plan))[0]
 
@@ -20,15 +22,19 @@ export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) 
     const newPosition = direction === 'up' ? index : index + 2
     dispatch({ type: 'movePriority', id, direction })
     setAnnouncement(
-      `${getPriority(id).label} moved to position ${newPosition} of ${plan.priorities.length}.`,
+      t('goals.priorityScreen.moved', {
+        priority: getPriority(id).label,
+        position: newPosition,
+        total: plan.priorities.length,
+      }),
     )
   }
 
   return (
     <Panel
       id="goals-priorities-title"
-      title="Trade-off priorities"
-      description="Every change has trade-offs. Put what matters most to you at the top; recommendations in the next step are ordered to match."
+      title={t('goals.priorityScreen.title')}
+      description={t('goals.priorityScreen.description')}
     >
       <ol className="goals-priorities">
         {plan.priorities.map((id, index) => {
@@ -43,7 +49,7 @@ export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) 
               <div className="goals-priorities__text">
                 <span className="goals-priorities__label">
                   {priority.label}
-                  {isFirst && <span className="goals-priorities__top">Most important</span>}
+                  {isFirst && <span className="goals-priorities__top">{t('goals.priorityScreen.mostImportant')}</span>}
                 </span>
                 <span className="goals-hint">{priority.description}</span>
               </div>
@@ -51,7 +57,7 @@ export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) 
                 <button
                   type="button"
                   className="goals-icon-button"
-                  aria-label={`Move ${priority.label} up`}
+                  aria-label={t('goals.priorityScreen.moveUp', { priority: priority.label })}
                   disabled={isFirst}
                   onClick={() => move(id, 'up')}
                 >
@@ -60,7 +66,7 @@ export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) 
                 <button
                   type="button"
                   className="goals-icon-button"
-                  aria-label={`Move ${priority.label} down`}
+                  aria-label={t('goals.priorityScreen.moveDown', { priority: priority.label })}
                   disabled={isLast}
                   onClick={() => move(id, 'down')}
                 >
@@ -73,7 +79,7 @@ export function TradeoffPriorities({ plan, dispatch }: TradeoffPrioritiesProps) 
       </ol>
 
       <p className="goals-callout" aria-live="polite">
-        With these priorities, the first recommendation is <strong>{topIdea.title}</strong>.
+        {t('goals.priorityScreen.topIdea', { idea: topIdea.title })}
       </p>
       <p className="visually-hidden" role="status">
         {announcement}

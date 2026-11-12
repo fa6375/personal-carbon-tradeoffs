@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '../../../components/Button'
+import { useI18n, type MessageKey } from '../../../i18n'
 import type { TransportOptionId } from '../types'
 import { ModePicker } from './ModePicker'
 
@@ -12,15 +13,12 @@ interface ChooseTransportProps {
 /** Screen 2 — Choose transport. */
 export function ChooseTransport({ initial, onContinue, onBack }: ChooseTransportProps) {
   const [modes, setModes] = useState(initial)
-  const [error, setError] = useState<string>()
+  const { t } = useI18n()
+  const [error, setError] = useState<MessageKey>()
 
   function handleContinue() {
     if (modes.length < 2) {
-      setError(
-        modes.length === 0
-          ? 'Choose at least two ways to travel to compare.'
-          : 'Choose at least one more way to travel. A comparison needs two or more options.',
-      )
+      setError(modes.length === 0 ? 'compare.transport.noneChosen' : 'compare.transport.oneMore')
       document.querySelector<HTMLInputElement>('.compare-mode-card__input')?.focus()
       return
     }
@@ -30,9 +28,9 @@ export function ChooseTransport({ initial, onContinue, onBack }: ChooseTransport
   return (
     <div className="compare-step">
       <ModePicker
-        legend="Which ways of travelling do you want to compare? Choose at least two."
+        legend={t('compare.transport.legend')}
         selected={modes}
-        error={error}
+        error={error ? t(error) : undefined}
         onChange={(next) => {
           setModes(next)
           if (next.length >= 2) setError(undefined)
@@ -40,10 +38,10 @@ export function ChooseTransport({ initial, onContinue, onBack }: ChooseTransport
       />
       <div className="compare-actions">
         <Button variant="secondary" onClick={onBack}>
-          Back
+          {t('compare.transport.back')}
         </Button>
         <Button icon="arrow-right" onClick={handleContinue}>
-          Continue to journey
+          {t('compare.transport.continue')}
         </Button>
       </div>
     </div>

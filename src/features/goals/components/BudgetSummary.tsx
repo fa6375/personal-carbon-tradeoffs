@@ -1,6 +1,7 @@
 import { useState, type Dispatch } from 'react'
 import { Button } from '../../../components/Button'
 import { ButtonLink } from '../../../components/ButtonLink'
+import { useI18n } from '../../../i18n'
 import {
   getAllocationTotal,
   getBaselineKg,
@@ -12,10 +13,10 @@ import {
   splitKg,
   sumAmounts,
 } from '../budget'
-import { formatCount, formatKg, formatMonth } from '../format'
+import { formatKg, formatMonth, formatPercentValue } from '../format'
 import type { GoalPlanAction } from '../goalPlanReducer'
 import { CATEGORIES, getPriority, OPPORTUNITIES } from '../sampleData'
-import type { BaselineSource, GoalPlan, GoalsStageId } from '../types'
+import type { GoalPlan, GoalsStageId } from '../types'
 import { Notice, Panel, StatTile } from './GoalsUi'
 
 interface BudgetSummaryProps {
@@ -26,14 +27,9 @@ interface BudgetSummaryProps {
   currentMonth: string
 }
 
-const SOURCE_TEXT: Record<BaselineSource, string> = {
-  sample: 'sample value',
-  tracked: 'from Carbon tracking',
-  custom: 'your estimate',
-}
-
 /** Screen 10 – Carbon budget summary. */
 export function BudgetSummary({ plan, dispatch, onEdit, currentMonth }: BudgetSummaryProps) {
+  const { t } = useI18n()
   const [confirmingReset, setConfirmingReset] = useState(false)
   const budgetKg = getBudgetKg(plan)
   const finalSplit = splitKg(budgetKg, plan.allocation)
@@ -43,31 +39,42 @@ export function BudgetSummary({ plan, dispatch, onEdit, currentMonth }: BudgetSu
   const gapKg = sumAmounts(getCategoryGaps(plan))
   const allocationTotal = getAllocationTotal(plan.allocation)
 
+  const sectionHead = (id: string, title: string, action: string, hidden: string, stage: GoalsStageId) => (
+    <div className="goals-summary-grid__head">
+      <h4 id={id} className="goals-subheading">
+        {title}
+      </h4>
+      <button type="button" className="goals-link-button" onClick={() => onEdit(stage)}>
+        {action}
+        <span className="visually-hidden"> {hidden}</span>
+      </button>
+    </div>
+  )
+
   return (
-    <Panel
-      id="goals-summary-title"
-      title="Carbon budget summary"
-      description="Everything in your plan on one page."
-    >
+    <Panel id="goals-summary-title" title={t('goals.summary.title')} description={t('goals.summary.description')}>
       <dl className="goals-stats">
         <StatTile
-          label="Monthly budget"
+          label={t('goals.budget.monthly')}
           value={formatKg(budgetKg)}
-          hint={`By ${formatMonth(plan.startMonth, plan.durationMonths - 1)}`}
+          hint={t('goals.summary.byMonth', { month: formatMonth(plan.startMonth, plan.durationMonths - 1) })}
           highlight
         />
         <StatTile
-          label="Goal"
-          value={`${plan.reductionPercent}% less`}
-          hint={`From ${formatKg(getBaselineKg(plan))} (${SOURCE_TEXT[plan.baseline.source]})`}
+          label={t('goals.summary.goal')}
+          value={t('goals.summary.goalValue', { percent: formatPercentValue(plan.reductionPercent) })}
+          hint={t('goals.summary.goalFrom', {
+            kg: formatKg(getBaselineKg(plan)),
+            source: t(`goals.budget.sourcesInline.${plan.baseline.source}`),
+          })}
         />
         <StatTile
-          label="Timeframe"
-          value={formatCount(plan.durationMonths, 'month', 'months')}
+          label={t('goals.summary.timeframe')}
+          value={t('goals.setup.months', { count: plan.durationMonths })}
           hint={`${formatMonth(plan.startMonth)} – ${formatMonth(plan.startMonth, plan.durationMonths - 1)}`}
         />
         <StatTile
-          label={planMonth.timing === 'not-started' ? 'First month target' : 'This month’s target'}
+          label={planMonth.timing === 'not-started' ? t('goals.summary.firstTarget') : t('goals.summary.thisTarget')}
           value={formatKg(planMonth.targetKg)}
           hint={formatMonth(plan.startMonth, planMonth.index)}
         />
@@ -75,38 +82,38 @@ export function BudgetSummary({ plan, dispatch, onEdit, currentMonth }: BudgetSu
 
       <div className="goals-summary-grid">
         <section aria-labelledby="summary-allocation">
-          <div className="goals-summary-grid__head">
-            <h4 id="summary-allocation" className="goals-subheading">
-              Allocation
-            </h4>
-            <button type="button" className="goals-link-button" onClick={() => onEdit('allocate')}>
-              Edit<span className="visually-hidden"> allocation</span>
-            </button>
-          </div>
+          {sectionHead(
+            'summary-allocation',
+            t('goals.summary.allocation'),
+            t('goals.summary.edit'),
+            t('goals.summary.editAllocation'),
+            'allocate',
+          )}
           <ul className="goals-category-list">
             {CATEGORIES.map((category) => (
               <li key={category.id}>
                 <span>{category.label}</span>
                 <span>
-                  {plan.allocation[category.id]}% · {formatKg(finalSplit[category.id])}
+                  {formatPercentValue(plan.allocation[category.id])} · {formatKg(finalSplit[category.id])}
                 </span>
               </li>
             ))}
           </ul>
           {allocationTotal !== 100 && (
-            <p className="goals-error">Allocation adds up to {allocationTotal}%, not 100%.</p>
+            <p className="goals-error">
+              {t('goals.summary.allocationSum', { total: formatPercentValue(allocationTotal) })}
+            </p>
           )}
         </section>
 
         <section aria-labelledby="summary-priorities">
-          <div className="goals-summary-grid__head">
-            <h4 id="summary-priorities" className="goals-subheading">
-              Priorities
-            </h4>
-            <button type="button" className="goals-link-button" onClick={() => onEdit('allocate')}>
-              Edit<span className="visually-hidden"> priorities</span>
-            </button>
-          </div>
+          {sectionHead(
+            'summary-priorities',
+            t('goals.summary.priorities'),
+            t('goals.summary.edit'),
+            t('goals.summary.editPriorities'),
+            'allocate',
+          )}
           <ol className="goals-summary-list">
             {plan.priorities.map((id) => (
               <li key={id}>{getPriority(id).label}</li>
@@ -115,74 +122,69 @@ export function BudgetSummary({ plan, dispatch, onEdit, currentMonth }: BudgetSu
         </section>
 
         <section aria-labelledby="summary-changes">
-          <div className="goals-summary-grid__head">
-            <h4 id="summary-changes" className="goals-subheading">
-              Planned changes
-            </h4>
-            <button type="button" className="goals-link-button" onClick={() => onEdit('plan')}>
-              Edit<span className="visually-hidden"> planned changes</span>
-            </button>
-          </div>
+          {sectionHead(
+            'summary-changes',
+            t('goals.summary.changes'),
+            t('goals.summary.edit'),
+            t('goals.summary.editChanges'),
+            'plan',
+          )}
           {selected.length === 0 ? (
-            <p className="goals-hint">No changes added yet.</p>
+            <p className="goals-hint">{t('goals.summary.noChanges')}</p>
           ) : (
             <>
               <ul className="goals-summary-list">
                 {selected.map((o) => (
                   <li key={o.id}>
-                    {o.title} <span className="goals-hint">(about {formatKg(getSavingKg(o))})</span>
+                    {o.title}{' '}
+                    <span className="goals-hint">{t('goals.summary.changeSaving', { kg: formatKg(getSavingKg(o)) })}</span>
                   </li>
                 ))}
               </ul>
               <p className="goals-hint">
-                About {formatKg(selectedSaving)} a month in total, of the {formatKg(gapKg)} you need
-                to cut. Estimates.
+                {t('goals.summary.changesTotal', { saving: formatKg(selectedSaving), gap: formatKg(gapKg) })}
               </p>
             </>
           )}
         </section>
 
         <section aria-labelledby="summary-adjustments">
-          <div className="goals-summary-grid__head">
-            <h4 id="summary-adjustments" className="goals-subheading">
-              Adjustments
-            </h4>
-            <button type="button" className="goals-link-button" onClick={() => onEdit('track')}>
-              View<span className="visually-hidden"> adjustments</span>
-            </button>
-          </div>
+          {sectionHead(
+            'summary-adjustments',
+            t('goals.summary.adjustments'),
+            t('goals.summary.view'),
+            t('goals.summary.viewAdjustments'),
+            'track',
+          )}
           <p className="goals-hint">
             {plan.adjustments.length === 0
-              ? 'No adjustments made.'
-              : `${formatCount(plan.adjustments.length, 'adjustment', 'adjustments')} made.`}
+              ? t('goals.summary.noAdjustments')
+              : t('goals.summary.adjustmentsMade', { count: plan.adjustments.length })}
           </p>
         </section>
       </div>
 
       <div className="goals-next-steps">
-        <h4 className="goals-subheading">Keep going</h4>
+        <h4 className="goals-subheading">{t('goals.summary.keepGoing')}</h4>
         <div className="goals-actions">
           <ButtonLink href="#/tracking" icon="arrow-right">
-            Record activities
+            {t('goals.summary.recordActivities')}
           </ButtonLink>
           <ButtonLink href="#/compare" variant="secondary" icon="arrow-right">
-            Compare a journey
+            {t('goals.summary.compare')}
           </ButtonLink>
           <Button variant="secondary" onClick={() => onEdit('track')}>
-            Check progress
+            {t('goals.summary.checkProgress')}
           </Button>
         </div>
       </div>
 
-      <Notice title="Not saved.">
-        This plan is kept while the app is open, including when you visit other pages, but it is
-        lost when the page is reloaded. Saving plans is not implemented yet.
-      </Notice>
+      <Notice title={t('goals.summary.savedTitle')}>{t('goals.summary.savedNotice')}</Notice>
 
       <div className="goals-actions">
         {confirmingReset ? (
           <div className="goals-callout goals-callout--warning goals-callout--action" role="alert">
-            <p>Start over? Your goal, allocation, priorities, planned changes and adjustments will be cleared.</p>
+            <p>{t('goals.summary.confirmStartOver')}</p>
             <div className="goals-actions">
               <Button
                 onClick={() => {
@@ -191,16 +193,16 @@ export function BudgetSummary({ plan, dispatch, onEdit, currentMonth }: BudgetSu
                   onEdit('setup')
                 }}
               >
-                Yes, start over
+                {t('goals.summary.yesStartOver')}
               </Button>
               <Button variant="secondary" onClick={() => setConfirmingReset(false)}>
-                Keep my plan
+                {t('goals.summary.keepPlan')}
               </Button>
             </div>
           </div>
         ) : (
           <Button variant="secondary" onClick={() => setConfirmingReset(true)}>
-            Start over
+            {t('goals.summary.startOver')}
           </Button>
         )}
       </div>

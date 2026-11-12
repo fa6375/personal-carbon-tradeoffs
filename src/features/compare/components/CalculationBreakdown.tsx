@@ -1,3 +1,5 @@
+import { t } from '../../../i18n'
+import { RichText } from '../../../i18n/RichText'
 import { CRITERIA, priorityLabel } from '../criteria'
 import { sharersFor, totalWeight } from '../calculate'
 import {
@@ -10,14 +12,8 @@ import {
   formatPeople,
 } from '../format'
 import { emissionFactorFor, getTransportOption } from '../transportOptions'
-import type { ComparisonResult, Criterion, OptionResult } from '../types'
+import type { ComparisonResult, OptionResult } from '../types'
 import { EstimateNotice, ModeName, Panel } from './CompareUi'
-
-const SCORE_NAMES: Record<Criterion, string> = {
-  emissions: 'CO₂ score',
-  cost: 'cost score',
-  time: 'time score',
-}
 
 /** Screen 6 — Detailed breakdown. Shows every step of every estimate. */
 export function CalculationBreakdown({ result }: { result: ComparisonResult }) {
@@ -30,22 +26,21 @@ export function CalculationBreakdown({ result }: { result: ComparisonResult }) {
 
       <Panel
         id="compare-method-title"
-        title="Method"
-        description={`All figures are per person for one ${formatNumber(journey.distanceKm)} km trip with ${formatPeople(journey.passengers)}.`}
+        title={t('compare.breakdown.method')}
+        description={t('compare.breakdown.methodDescription', {
+          distance: formatNumber(journey.distanceKm),
+          people: formatPeople(journey.passengers),
+        })}
       >
         <ul className="compare-method">
           <li>
-            <strong>CO₂</strong> = distance × emission factor (kg CO₂e per km), divided by the people in
-            the car for car and electric car.
+            <RichText text={t('compare.breakdown.co2Formula')} values={{ label: <strong>{t('compare.breakdown.co2')}</strong> }} />
           </li>
           <li>
-            <strong>Cost</strong> = fixed cost + distance × cost per km. Public transport is one ticket
-            each; car fuel or charging and parking are shared by everyone in the car. Buying,
-            insuring and maintaining a car are not included.
+            <RichText text={t('compare.breakdown.costFormula')} values={{ label: <strong>{t('compare.breakdown.cost')}</strong> }} />
           </li>
           <li>
-            <strong>Travel time</strong> = distance ÷ average speed + time to reach a stop, wait, or
-            park.
+            <RichText text={t('compare.breakdown.timeFormula')} values={{ label: <strong>{t('compare.breakdown.time')}</strong> }} />
           </li>
         </ul>
       </Panel>
@@ -56,24 +51,27 @@ export function CalculationBreakdown({ result }: { result: ComparisonResult }) {
 
       <Panel
         id="compare-scoring-title"
-        title="How the recommendation is scored"
-        description="Each option scores from 0% (worst of the compared options) to 100% (best) on each criterion. The overall match weights those scores by your priorities."
+        title={t('compare.breakdown.scoring')}
+        description={t('compare.breakdown.scoringDescription')}
       >
         <div className="compare-table-wrap">
           <table className="compare-table">
-            <caption className="visually-hidden">Scores for each option and criterion</caption>
+            <caption className="visually-hidden">{t('compare.breakdown.scoresCaption')}</caption>
             <thead>
               <tr>
-                <th scope="col">Option</th>
+                <th scope="col">{t('compare.results.option')}</th>
                 {CRITERIA.map((criterion) => (
                   <th key={criterion.id} scope="col">
                     {criterion.label}
                     <span className="compare-table__sub">
-                      weight {priorities[criterion.id]} · {priorityLabel(priorities[criterion.id]).toLowerCase()}
+                      {t('compare.breakdown.weight', {
+                        weight: priorities[criterion.id],
+                        level: priorityLabel(priorities[criterion.id]),
+                      })}
                     </span>
                   </th>
                 ))}
-                <th scope="col">Overall match</th>
+                <th scope="col">{t('compare.breakdown.overall')}</th>
               </tr>
             </thead>
             <tbody>
@@ -94,7 +92,12 @@ export function CalculationBreakdown({ result }: { result: ComparisonResult }) {
           </table>
         </div>
         <p className="compare-formula">
-          Overall match = ({CRITERIA.map((criterion) => `${priorities[criterion.id]} × ${SCORE_NAMES[criterion.id]}`).join(' + ')}) ÷ {weight}
+          {t('compare.breakdown.formula', {
+            terms: CRITERIA.map(
+              (criterion) => `${priorities[criterion.id]} × ${t(`compare.breakdown.scoreNames.${criterion.id}`)}`,
+            ).join(' + '),
+            weight,
+          })}
         </p>
       </Panel>
     </div>
@@ -105,7 +108,7 @@ function OptionBreakdown({ option, distanceKm, passengers }: { option: OptionRes
   const details = getTransportOption(option.mode)
   const factor = emissionFactorFor(option.mode)
   const sharers = sharersFor(option.mode, passengers)
-  const shared = sharers > 1 ? ` ÷ ${sharers} people` : ''
+  const shared = sharers > 1 ? ` ${t('compare.breakdown.sharedBy', { people: formatPeople(sharers) })}` : ''
   const id = `compare-breakdown-${option.mode}`
 
   return (
@@ -115,7 +118,7 @@ function OptionBreakdown({ option, distanceKm, passengers }: { option: OptionRes
       </h3>
       <dl className="compare-calc">
         <div>
-          <dt>CO₂ emissions</dt>
+          <dt>{t('compare.criteria.emissions.label')}</dt>
           <dd>
             <span className="compare-calc__formula">
               {formatNumber(distanceKm)} km × {formatFactor(factor)} kg/km{shared}
@@ -124,7 +127,7 @@ function OptionBreakdown({ option, distanceKm, passengers }: { option: OptionRes
           </dd>
         </div>
         <div>
-          <dt>Cost</dt>
+          <dt>{t('compare.criteria.cost.label')}</dt>
           <dd>
             <span className="compare-calc__formula">
               ({formatEuro(details.fixedCostEur)} + {formatNumber(distanceKm)} km × {formatEuro(details.costPerKmEur)}/km){shared}
@@ -133,16 +136,16 @@ function OptionBreakdown({ option, distanceKm, passengers }: { option: OptionRes
           </dd>
         </div>
         <div>
-          <dt>Travel time</dt>
+          <dt>{t('compare.criteria.time.label')}</dt>
           <dd>
             <span className="compare-calc__formula">
-              {formatNumber(distanceKm)} km ÷ {details.speedKmh} km/h + {details.overheadMinutes} min
+              {formatNumber(distanceKm)} km ÷ {details.speedKmh} km/h + {formatDuration(details.overheadMinutes)}
             </span>
             <strong>= {formatDuration(option.timeMinutes)}</strong>
           </dd>
         </div>
         <div>
-          <dt>Assumptions</dt>
+          <dt>{t('compare.breakdown.assumptions')}</dt>
           <dd>{details.assumptions}</dd>
         </div>
       </dl>

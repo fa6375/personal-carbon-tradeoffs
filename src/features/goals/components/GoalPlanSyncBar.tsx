@@ -1,25 +1,28 @@
 import { useState } from 'react'
 import { Button } from '../../../components/Button'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
+import { useI18n } from '../../../i18n'
+import type { DataErrorCode } from '../../../lib/dataErrors'
+import { dataErrorCode, dataErrorText } from '../../../lib/errorMessages'
 import { deleteSavedGoalPlan, retryGoalPlanSave, type GoalSyncState } from '../goalPlanSync'
-
-const dateTime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' })
 
 /** Shows whether the plan is saved in the user's account, with retry and delete. */
 export function GoalPlanSyncBar({ sync }: { sync: GoalSyncState }) {
+  const { t, format } = useI18n()
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<DataErrorCode | null>(null)
   const [deleted, setDeleted] = useState(false)
 
   async function confirmDelete() {
+    if (deleting) return
     setDeleting(true)
     setDeleteError(null)
     try {
       await deleteSavedGoalPlan()
       setDeleted(true)
     } catch (reason) {
-      setDeleteError(reason instanceof Error ? reason.message : 'The plan could not be deleted.')
+      setDeleteError(dataErrorCode(reason))
     } finally {
       setDeleting(false)
       setConfirming(false)
@@ -27,15 +30,14 @@ export function GoalPlanSyncBar({ sync }: { sync: GoalSyncState }) {
   }
 
   const text = {
-    new: deleted
-      ? 'Your saved plan was deleted. This default plan is saved as soon as you change something.'
-      : 'This plan is saved to your account as soon as you change something.',
-    pending: 'Saving changes…',
-    saving: 'Saving changes…',
+    new: deleted ? t('goals.sync.newAfterDelete') : t('goals.sync.new'),
+    pending: t('goals.sync.saving'),
+    saving: t('goals.sync.saving'),
     saved: sync.savedAt
-      ? `All changes saved to your account (${dateTime.format(new Date(sync.savedAt))}).`
-      : 'Your plan is saved in your account.',
-    error: `Your latest changes are not saved. ${sync.error ?? ''}`,
+      ? t('goals.sync.saved', { time: format.dateTime(new Date(sync.savedAt)) })
+      : t('goals.sync.savedNoTime'),
+    offline: t('goals.sync.offline'),
+    error: t('goals.sync.error', { error: dataErrorText(sync.error ?? 'unknown') }),
   }[sync.save]
 
   return (
@@ -45,26 +47,26 @@ export function GoalPlanSyncBar({ sync }: { sync: GoalSyncState }) {
       </p>
       {deleteError && (
         <p role="alert" className="goals-sync__error">
-          {deleteError}
+          {t('goals.sync.deleteFailed', { error: dataErrorText(deleteError) })}
         </p>
       )}
       <div className="goals-sync__actions">
-        {sync.save === 'error' && (
+        {(sync.save === 'error' || sync.save === 'offline') && (
           <Button variant="secondary" onClick={retryGoalPlanSave}>
-            Try saving again
+            {t('goals.sync.retry')}
           </Button>
         )}
         {sync.save !== 'new' && (
           <Button variant="secondary" onClick={() => setConfirming(true)}>
-            Delete saved plan
+            {t('goals.sync.delete')}
           </Button>
         )}
       </div>
       <ConfirmDialog
         open={confirming}
-        title="Delete your saved plan?"
-        message="Your goal, budget, allocation, priorities, chosen ideas and adjustment history will be permanently deleted from your account. Your tracked activities are not affected. This cannot be undone."
-        confirmLabel="Delete plan"
+        title={t('goals.sync.confirmTitle')}
+        message={t('goals.sync.confirmMessage')}
+        confirmLabel={t('goals.sync.confirmButton')}
         busy={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setConfirming(false)}

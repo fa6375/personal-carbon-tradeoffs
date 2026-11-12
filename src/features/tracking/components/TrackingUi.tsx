@@ -2,9 +2,10 @@
 import type { ReactNode } from 'react'
 import { Button } from '../../../components/Button'
 import { Icon } from '../../../components/Icon'
+import { t } from '../../../i18n'
 import type { ActivityCategory } from '../types'
 import { CATEGORY_ICONS } from '../categoryIcons'
-import { CATEGORY_LABELS } from '../emissionFactors'
+import { categoryLabel } from '../labels'
 
 
 interface PanelProps {
@@ -48,7 +49,7 @@ export function CategoryTag({ category }: { category: ActivityCategory }) {
   return (
     <span className={`tracking-tag tracking-tag--${category}`}>
       <Icon name={CATEGORY_ICONS[category]} size={14} />
-      {CATEGORY_LABELS[category]}
+      {categoryLabel(category)}
     </span>
   )
 }
@@ -94,19 +95,17 @@ export function EstimateNotice() {
     <p className="tracking-notice">
       <Icon name="info" size={16} />
       <span>
-        <strong>Estimates.</strong> Emissions are calculated with illustrative average emission
-        factors, not measured values. They will be replaced with data from an emission-factor
-        service.
+        <strong>{t('tracking.estimateTitle')}</strong> {t('tracking.estimateNotice')}
       </span>
     </p>
   )
 }
 
-export function LoadingState({ label = 'Loading activities…' }: { label?: string }) {
+export function LoadingState({ label }: { label?: string }) {
   return (
     <div className="tracking-loading" role="status">
       <span className="tracking-loading__spinner" aria-hidden="true" />
-      <span>{label}</span>
+      <span>{label ?? t('tracking.loading')}</span>
     </div>
   )
 }
@@ -116,11 +115,11 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
     <div className="tracking-error" role="alert">
       <Icon name="info" size={20} />
       <div>
-        <p className="tracking-error__title">Something went wrong</p>
+        <p className="tracking-error__title">{t('states.errorTitle')}</p>
         <p>{message}</p>
         {onRetry && (
           <Button variant="secondary" onClick={onRetry} className="tracking-error__retry">
-            Try again
+            {t('actions.tryAgain')}
           </Button>
         )}
       </div>

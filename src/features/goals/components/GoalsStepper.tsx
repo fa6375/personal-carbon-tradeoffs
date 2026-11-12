@@ -1,3 +1,4 @@
+import { useI18n } from '../../../i18n'
 import type { GoalsStage } from '../stages'
 import type { GoalsStageId } from '../types'
 
@@ -9,8 +10,9 @@ interface GoalsStepperProps {
 
 /** Step navigation for the Goals feature. Every step can be opened directly. */
 export function GoalsStepper({ stages, current, onSelect }: GoalsStepperProps) {
+  const { t } = useI18n()
   return (
-    <nav className="goals-stepper" aria-label="Goal planning steps">
+    <nav className="goals-stepper" aria-label={t('goals.stepsLabel')}>
       <ol className="goals-stepper__list">
         {stages.map((stage, index) => {
           const isCurrent = stage.id === current
@@ -26,7 +28,7 @@ export function GoalsStepper({ stages, current, onSelect }: GoalsStepperProps) {
                   {index + 1}
                 </span>
                 <span>
-                  <span className="visually-hidden">Step {index + 1}: </span>
+                  <span className="visually-hidden">{t('goals.stepPrefix', { number: index + 1 })}</span>
                   {stage.label}
                 </span>
               </button>

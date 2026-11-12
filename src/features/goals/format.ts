@@ -1,31 +1,24 @@
-/** Display formatting for the Goals feature. English only until i18n is set up. */
+/** Display formatting for the Goals feature, in the current language (src/i18n). */
+import { format } from '../../i18n'
 
-// Same precision as Personal Carbon Tracking, so the two features show the same figures.
-const kgFormatter = new Intl.NumberFormat('en', { maximumFractionDigits: 1 })
-const monthFormatter = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' })
-const dateTimeFormatter = new Intl.DateTimeFormat('en', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-})
-const pluralRules = new Intl.PluralRules('en')
-
+/** Same precision as Personal Carbon Tracking, so the two features show the same figures. */
 export function formatKg(kg: number): string {
-  return `${kgFormatter.format(kg)} kg CO₂e`
+  return format().kg(kg)
 }
 
-/** "1 activity" / "3 activities" etc. */
-export function formatCount(count: number, singular: string, plural: string): string {
-  return `${count} ${pluralRules.select(count) === 'one' ? singular : plural}`
+/** A whole percentage given as a number, e.g. 20 → "20%" / "20 %". */
+export function formatPercentValue(percent: number): string {
+  return format().percent(percent / 100)
 }
 
 /** Formats a "YYYY-MM" month, optionally shifted by a number of months. */
 export function formatMonth(yearMonth: string, offset = 0): string {
   const [year, month] = yearMonth.split('-').map(Number)
-  return monthFormatter.format(new Date(year, month - 1 + offset, 1))
+  return format().month(new Date(year, month - 1 + offset, 1))
 }
 
 export function formatDateTime(iso: string): string {
-  return dateTimeFormatter.format(new Date(iso))
+  return format().dateTime(new Date(iso))
 }
 
 export function toYearMonth(date: Date): string {

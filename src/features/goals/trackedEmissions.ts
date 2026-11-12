@@ -9,6 +9,7 @@
 import { inPeriod, totalsByCategory } from '../tracking/stats'
 import type { LoadStatus } from '../tracking/useActivities'
 import type { Activity } from '../tracking/types'
+import type { DataErrorCode } from '../../lib/dataErrors'
 import { roundKg } from './budget'
 import { CATEGORY_IDS } from './sampleData'
 import type { CategoryAmounts } from './types'
@@ -21,7 +22,8 @@ export interface TrackedTotals {
 
 export interface TrackedData {
   status: LoadStatus
-  error: string | null
+  /** Error code from Carbon tracking; show it with dataErrorText(). */
+  error: DataErrorCode | null
   reload: () => void
   /** Last 30 days, used as a baseline. */
   last30Days: TrackedTotals
@@ -41,7 +43,7 @@ function summarise(activities: Activity[], period: '30d' | 'month', now: Date): 
 export function summariseTracked(
   status: LoadStatus,
   activities: Activity[],
-  error: string | null,
+  error: DataErrorCode | null,
   reload: () => void,
   now = new Date(),
 ): TrackedData {

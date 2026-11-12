@@ -1,5 +1,6 @@
 import { Button } from '../../../components/Button'
 import { Icon } from '../../../components/Icon'
+import { useI18n } from '../../../i18n'
 
 interface NoActivitiesProps {
   onAdd: () => void
@@ -7,31 +8,29 @@ interface NoActivitiesProps {
 
 /** Screen 10 — No Activities Recorded. Shown wherever there is nothing to summarise yet. */
 export function NoActivities({ onAdd }: NoActivitiesProps) {
+  const { t } = useI18n()
   return (
     <section className="tracking-empty" aria-labelledby="tracking-empty-title">
       <span className="tracking-empty__icon">
         <Icon name="activity" size={26} />
       </span>
       <h3 id="tracking-empty-title" className="tracking-empty__title">
-        No activities recorded yet
+        {t('tracking.empty.title')}
       </h3>
-      <p className="tracking-empty__body">
-        Record a trip, a meal or your home energy use to start tracking your emissions. Your
-        dashboard, history and breakdown fill in as you add activities.
-      </p>
+      <p className="tracking-empty__body">{t('tracking.empty.body')}</p>
       <ul className="tracking-empty__list">
         <li>
-          <Icon name="car" size={18} /> Transport, such as a bus ride or a drive
+          <Icon name="car" size={18} /> {t('tracking.empty.transport')}
         </li>
         <li>
-          <Icon name="utensils" size={18} /> Food, such as a meal with meat or a vegan lunch
+          <Icon name="utensils" size={18} /> {t('tracking.empty.food')}
         </li>
         <li>
-          <Icon name="bolt" size={18} /> Home energy, such as electricity or gas from a bill
+          <Icon name="bolt" size={18} /> {t('tracking.empty.home')}
         </li>
       </ul>
       <Button icon="plus" onClick={onAdd}>
-        Add your first activity
+        {t('tracking.empty.add')}
       </Button>
     </section>
   )

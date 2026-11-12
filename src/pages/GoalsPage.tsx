@@ -24,9 +24,12 @@ import type { GoalsStageId } from '../features/goals/types'
 import { useActivities } from '../features/tracking/useActivities'
 import { useAuth } from '../features/auth/authContext'
 import '../features/goals/goals.css'
+import { useI18n } from '../i18n'
+import { dataErrorText } from '../lib/errorMessages'
 
 /** Carbon Reduction Goals & Recommendations (Martin Mudrinić). */
 export function GoalsPage() {
+  const { t } = useI18n()
   const { plan, stageId } = useGoalsSession()
   // The plan is loaded from and saved to the signed-in user's account.
   const { user } = useAuth()
@@ -59,19 +62,19 @@ export function GoalsPage() {
   return (
     <div className="goals-page">
       <PageHeader
-        eyebrow="Carbon goals"
-        title="Carbon reduction goals"
-        description="Set a monthly carbon budget, share it across the parts of your life, and find changes that fit how you want to live."
+        eyebrow={t('goals.eyebrow')}
+        title={t('goals.title')}
+        description={t('goals.description')}
       />
 
-      {(sync.load === 'idle' || sync.load === 'loading') && <LoadingLine>Loading your saved plan…</LoadingLine>}
+      {(sync.load === 'idle' || sync.load === 'loading') && <LoadingLine>{t('goals.loadingPlan')}</LoadingLine>}
 
       {sync.load === 'error' && (
         <div className="goals-sync goals-sync--error" role="alert">
-          <p className="goals-sync__text">Your saved plan could not be loaded. {sync.error}</p>
+          <p className="goals-sync__text">{t('goals.loadFailed', { error: dataErrorText(sync.error ?? 'unknown') })}</p>
           <div className="goals-sync__actions">
             <Button variant="secondary" onClick={retryGoalPlanLoad}>
-              Try again
+              {t('actions.tryAgain')}
             </Button>
           </div>
         </div>
@@ -91,7 +94,7 @@ export function GoalsPage() {
           >
             <SectionHeading
               id="goals-stage-title"
-              title={`Step ${stageIndex + 1} of ${GOALS_STAGES.length}: ${stage.title}`}
+              title={t('goals.stepHeading', { number: stageIndex + 1, total: GOALS_STAGES.length, title: stage.title })}
               description={stage.description}
             />
 
@@ -146,12 +149,12 @@ export function GoalsPage() {
             <div className="goals-stage__nav">
               {previous && (
                 <Button variant="secondary" onClick={() => goTo(previous.id)}>
-                  Back: {previous.label}
+                  {t('goals.backTo', { step: previous.label })}
                 </Button>
               )}
               {next && (
                 <Button icon="arrow-right" onClick={() => goTo(next.id)}>
-                  Next: {next.label}
+                  {t('goals.nextTo', { step: next.label })}
                 </Button>
               )}
             </div>

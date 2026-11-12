@@ -1,12 +1,15 @@
 import { useId, useState } from 'react'
-import { CATEGORIES, CATEGORY_LABELS } from '../emissionFactors'
+import { useI18n } from '../../../i18n'
+import { CATEGORIES } from '../emissionFactors'
 import { formatActivityCount, formatKg, formatPercent } from '../format'
+import { categoryLabel, sourceLabel } from '../labels'
 import { PERIODS, inPeriod, totalKg, totalsByCategory, totalsBySource } from '../stats'
 import type { Activity, PeriodId } from '../types'
 import { CategoryTag, EstimateNotice, Panel, ShareBar } from './TrackingUi'
 
 /** Screen 9 — Carbon Emissions Breakdown. */
 export function EmissionsBreakdown({ activities }: { activities: Activity[] }) {
+  const { t } = useI18n()
   const [period, setPeriod] = useState<PeriodId>('30d')
   const selectId = useId()
 
@@ -14,18 +17,21 @@ export function EmissionsBreakdown({ activities }: { activities: Activity[] }) {
   const total = totalKg(selected)
   const byCategory = totalsByCategory(selected)
   const bySource = totalsBySource(selected)
-  const periodLabel = PERIODS.find((option) => option.id === period)!.label.toLowerCase()
 
   return (
     <div className="tracking-grid">
       <Panel
         id="tracking-breakdown-title"
-        title="Emissions by category"
-        description={`${formatActivityCount(selected.length)} · ${formatKg(total)} in ${periodLabel === 'all time' ? 'total' : `the ${periodLabel}`}`}
+        title={t('tracking.breakdown.title')}
+        description={t('tracking.breakdown.summary', {
+          activities: formatActivityCount(selected.length),
+          kg: formatKg(total),
+          period: t(`tracking.breakdown.periodPhrase.${period}`),
+        })}
         actions={
           <div className="tracking-field tracking-field--inline">
             <label htmlFor={selectId} className="tracking-field__label">
-              Period
+              {t('tracking.breakdown.period')}
             </label>
             <select
               id={selectId}
@@ -35,7 +41,7 @@ export function EmissionsBreakdown({ activities }: { activities: Activity[] }) {
             >
               {PERIODS.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {option.label}
+                  {t(`tracking.periods.${option.id}`)}
                 </option>
               ))}
             </select>
@@ -48,7 +54,7 @@ export function EmissionsBreakdown({ activities }: { activities: Activity[] }) {
               <ShareBar
                 key={category}
                 category={category}
-                label={CATEGORY_LABELS[category]}
+                label={categoryLabel(category)}
                 share={byCategory[category] / total}
                 valueText={`${formatKg(byCategory[category])} (${formatPercent(byCategory[category] / total)})`}
               />
@@ -56,38 +62,40 @@ export function EmissionsBreakdown({ activities }: { activities: Activity[] }) {
           </div>
         ) : (
           <p className="tracking-muted" role="status">
-            {selected.length > 0
-              ? 'The activities in this period have zero estimated emissions, for example walking or cycling.'
-              : 'No activities in this period. Choose a longer period to see your breakdown.'}
+            {selected.length > 0 ? t('tracking.breakdown.zero') : t('tracking.breakdown.none')}
           </p>
         )}
       </Panel>
 
-      <Panel id="tracking-sources-title" title="Largest sources" description="What contributed most in this period.">
+      <Panel
+        id="tracking-sources-title"
+        title={t('tracking.breakdown.sourcesTitle')}
+        description={t('tracking.breakdown.sourcesDescription')}
+      >
         {bySource.length > 0 ? (
           <div className="tracking-table-wrap">
             <table className="tracking-table">
-              <caption className="visually-hidden">Emissions by source, largest first</caption>
+              <caption className="visually-hidden">{t('tracking.breakdown.caption')}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Source</th>
+                  <th scope="col">{t('tracking.breakdown.source')}</th>
                   <th scope="col" className="tracking-table__num">
-                    Activities
+                    {t('tracking.breakdown.activities')}
                   </th>
                   <th scope="col" className="tracking-table__num">
-                    Emissions
+                    {t('tracking.breakdown.emissions')}
                   </th>
                   <th scope="col" className="tracking-table__num">
-                    Share
+                    {t('tracking.breakdown.share')}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {bySource.map((row) => (
-                  <tr key={`${row.category}-${row.label}`}>
+                  <tr key={`${row.category}-${row.source}`}>
                     <th scope="row">
                       <span className="tracking-table__source">
-                        {row.label}
+                        {sourceLabel(row.category, row.source)}
                         <CategoryTag category={row.category} />
                       </span>
                     </th>
@@ -100,7 +108,7 @@ export function EmissionsBreakdown({ activities }: { activities: Activity[] }) {
             </table>
           </div>
         ) : (
-          <p className="tracking-muted">Nothing recorded in this period.</p>
+          <p className="tracking-muted">{t('tracking.breakdown.nothing')}</p>
         )}
         <EstimateNotice />
       </Panel>

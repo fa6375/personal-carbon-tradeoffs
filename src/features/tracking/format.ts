@@ -1,24 +1,20 @@
-/** Display formatting for the Tracking feature. English only until i18n is set up. */
+/**
+ * Display formatting for the Tracking feature, in the current language
+ * (src/i18n). Dates are stored as "YYYY-MM-DD" and never translated.
+ */
+import { format, t } from '../../i18n'
 import type { ActivityDetails } from './types'
 
-const kgFormatter = new Intl.NumberFormat('en', { maximumFractionDigits: 1 })
-const numberFormatter = new Intl.NumberFormat('en', { maximumFractionDigits: 1 })
-const percentFormatter = new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 0 })
-const dateFormatter = new Intl.DateTimeFormat('en', { dateStyle: 'medium' })
-const longDateFormatter = new Intl.DateTimeFormat('en', { dateStyle: 'full' })
-const dateTimeFormatter = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' })
-const pluralRules = new Intl.PluralRules('en')
-
 export function formatKg(kg: number): string {
-  return `${kgFormatter.format(kg)} kg CO₂e`
+  return format().kg(kg)
 }
 
 export function formatNumber(value: number): string {
-  return numberFormatter.format(value)
+  return format().number(value)
 }
 
 export function formatPercent(share: number): string {
-  return percentFormatter.format(share)
+  return format().percent(share)
 }
 
 /** Parses "YYYY-MM-DD" as a local date (not UTC). */
@@ -28,15 +24,15 @@ export function parseLocalDate(day: string): Date {
 }
 
 export function formatDay(day: string): string {
-  return dateFormatter.format(parseLocalDate(day))
+  return format().date(parseLocalDate(day))
 }
 
 export function formatLongDay(day: string): string {
-  return longDateFormatter.format(parseLocalDate(day))
+  return format().longDate(parseLocalDate(day))
 }
 
 export function formatDateTime(iso: string): string {
-  return dateTimeFormatter.format(new Date(iso))
+  return format().dateTime(new Date(iso))
 }
 
 export function toLocalDay(date: Date): string {
@@ -49,9 +45,9 @@ export function today(): string {
   return toLocalDay(new Date())
 }
 
-/** "1 activity" / "3 activities", using the locale's plural rules. */
+/** "1 activity" / "3 activities" (Croatian: aktivnost / aktivnosti) using the locale's plural rules. */
 export function formatActivityCount(count: number): string {
-  return `${count} ${pluralRules.select(count) === 'one' ? 'activity' : 'activities'}`
+  return t('tracking.activityCount', { count })
 }
 
 /** The amount part of an activity, e.g. "12 km", "2 servings", "150 kWh". */
@@ -60,7 +56,7 @@ export function formatAmount(details: ActivityDetails): string {
     case 'transport':
       return `${formatNumber(details.distanceKm)} km`
     case 'food':
-      return `${formatNumber(details.servings)} ${pluralRules.select(details.servings) === 'one' ? 'serving' : 'servings'}`
+      return t('tracking.servings', { count: details.servings })
     case 'home':
       return `${formatNumber(details.kwh)} kWh`
   }

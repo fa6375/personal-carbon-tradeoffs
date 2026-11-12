@@ -1,25 +1,12 @@
 import { ButtonLink } from '../../../components/ButtonLink'
-import {
-  getPaceStatus,
-  getPlanMonth,
-  roundKg,
-  splitKg,
-  sumAmounts,
-  usedPercent,
-} from '../budget'
-import { formatCount, formatKg, formatMonth, getMonthProgress } from '../format'
+import { useI18n } from '../../../i18n'
+import { dataErrorText } from '../../../lib/errorMessages'
+import { getPaceStatus, getPlanMonth, roundKg, splitKg, sumAmounts, usedPercent } from '../budget'
+import { formatKg, formatMonth, formatPercentValue, getMonthProgress } from '../format'
 import { CATEGORIES, SAMPLE_CURRENT_USAGE, SAMPLE_DAY } from '../sampleData'
 import type { TrackedData } from '../trackedEmissions'
 import type { CategoryAmounts, GoalPlan } from '../types'
-import {
-  ErrorLine,
-  LoadingLine,
-  Notice,
-  Panel,
-  ProgressBar,
-  SampleDataNotice,
-  StatusBadge,
-} from './GoalsUi'
+import { ErrorLine, LoadingLine, Notice, Panel, ProgressBar, SampleDataNotice, StatusBadge } from './GoalsUi'
 
 interface GoalProgressProps {
   plan: GoalPlan
@@ -30,6 +17,7 @@ interface GoalProgressProps {
 
 /** Screen 8 – Goal progress. */
 export function GoalProgress({ plan, tracked, currentMonth }: GoalProgressProps) {
+  const { t } = useI18n()
   const planMonth = getPlanMonth(plan, currentMonth)
   const usesTracked = tracked.status === 'ready' && tracked.thisMonth.count > 0
   const day = usesTracked ? getMonthProgress() : SAMPLE_DAY
@@ -37,14 +25,17 @@ export function GoalProgress({ plan, tracked, currentMonth }: GoalProgressProps)
   return (
     <Panel
       id="goals-progress-title"
-      title="Goal progress"
-      description={`How ${formatMonth(currentMonth)} is going against this month’s target of ${formatKg(planMonth.targetKg)}. The line on each bar shows how much of the month has passed.`}
+      title={t('goals.progress.title')}
+      description={t('goals.progress.description', {
+        month: formatMonth(currentMonth),
+        target: formatKg(planMonth.targetKg),
+      })}
     >
-      {tracked.status === 'loading' && <LoadingLine>Loading your tracked activities…</LoadingLine>}
+      {tracked.status === 'loading' && <LoadingLine>{t('goals.progress.loading')}</LoadingLine>}
 
       {tracked.status === 'error' && (
         <ErrorLine
-          message={`${tracked.error ?? 'Your tracked activities could not be loaded.'} Progress cannot be shown until they load.`}
+          message={t('goals.progress.loadError', { error: dataErrorText(tracked.error ?? 'unknown') })}
           onRetry={tracked.reload}
         />
       )}
@@ -52,18 +43,16 @@ export function GoalProgress({ plan, tracked, currentMonth }: GoalProgressProps)
       {tracked.status === 'ready' && (
         <>
           {usesTracked ? (
-            <Notice title="From Carbon tracking.">
-              {formatCount(tracked.thisMonth.count, 'activity', 'activities')} recorded this month,
-              estimated with the illustrative emission factors from Carbon tracking.
+            <Notice title={t('goals.ui.fromTrackingTitle')}>
+              {t('goals.progress.fromTracking', {
+                activities: t('tracking.activityCount', { count: tracked.thisMonth.count }),
+              })}
             </Notice>
           ) : (
             <div className="goals-callout goals-callout--action">
-              <p>
-                No activities recorded in Carbon tracking this month, so a sample month is shown
-                below.
-              </p>
+              <p>{t('goals.progress.noneThisMonth')}</p>
               <ButtonLink href="#/tracking" variant="secondary" icon="arrow-right">
-                Record an activity
+                {t('goals.progress.record')}
               </ButtonLink>
             </div>
           )}
@@ -77,15 +66,14 @@ export function GoalProgress({ plan, tracked, currentMonth }: GoalProgressProps)
 
           {usesTracked ? (
             <div className="goals-crosslink">
-              <p>Recorded something new? Progress updates when you come back to this step.</p>
+              <p>{t('goals.progress.refreshText')}</p>
               <ButtonLink href="#/tracking" variant="secondary" icon="arrow-right">
-                Open Carbon tracking
+                {t('goals.progress.openTracking')}
               </ButtonLink>
             </div>
           ) : (
             <SampleDataNotice>
-              Day {SAMPLE_DAY.current} of {SAMPLE_DAY.total} and the emissions used so far are
-              placeholders.
+              {t('goals.progress.sampleNotice', { day: SAMPLE_DAY.current, days: SAMPLE_DAY.total })}
             </SampleDataNotice>
           )}
         </>
@@ -102,6 +90,7 @@ interface ProgressDetailsProps {
 }
 
 function ProgressDetails({ used, targetKg, plan, day }: ProgressDetailsProps) {
+  const { t } = useI18n()
   const elapsed = day.current / day.total
   const usedKg = sumAmounts(used)
   const status = getPaceStatus(usedKg, targetKg, elapsed)
@@ -111,24 +100,33 @@ function ProgressDetails({ used, targetKg, plan, day }: ProgressDetailsProps) {
     <>
       <div className="goals-progress-summary">
         <div className="goals-progress-summary__head">
-          <span className="goals-label">Whole budget</span>
+          <span className="goals-label">{t('goals.progress.wholeBudget')}</span>
           <StatusBadge status={status} />
         </div>
         <ProgressBar
-          label="Whole monthly budget used"
+          label={t('goals.progress.wholeBudgetUsed')}
           value={usedKg}
           max={targetKg}
-          valueText={`${usedPercent(usedKg, targetKg)}% used: ${formatKg(usedKg)} of ${formatKg(targetKg)}`}
+          valueText={t('goals.progress.usedValue', {
+            percent: formatPercentValue(usedPercent(usedKg, targetKg)),
+            used: formatKg(usedKg),
+            budget: formatKg(targetKg),
+          })}
           status={status}
           marker={elapsed}
         />
         <p className="goals-hint">
-          <strong>{usedPercent(usedKg, targetKg)}% used</strong> ({formatKg(usedKg)} of{' '}
-          {formatKg(targetKg)}) with {Math.round(elapsed * 100)}% of the month gone (day{' '}
-          {day.current} of {day.total}).{' '}
+          {t('goals.progress.summary', {
+            percent: formatPercentValue(usedPercent(usedKg, targetKg)),
+            used: formatKg(usedKg),
+            budget: formatKg(targetKg),
+            elapsed: formatPercentValue(Math.round(elapsed * 100)),
+            day: day.current,
+            days: day.total,
+          })}{' '}
           {usedKg <= targetKg
-            ? `${formatKg(roundKg(targetKg - usedKg))} left.`
-            : `${formatKg(roundKg(usedKg - targetKg))} over.`}
+            ? t('goals.progress.left', { kg: formatKg(roundKg(targetKg - usedKg)) })
+            : t('goals.progress.over', { kg: formatKg(roundKg(usedKg - targetKg)) })}
         </p>
       </div>
 
@@ -137,6 +135,11 @@ function ProgressDetails({ used, targetKg, plan, day }: ProgressDetailsProps) {
           const budget = categoryBudgets[category.id]
           const categoryUsed = used[category.id]
           const categoryStatus = getPaceStatus(categoryUsed, budget, elapsed)
+          const values = {
+            percent: formatPercentValue(usedPercent(categoryUsed, budget)),
+            used: formatKg(categoryUsed),
+            budget: formatKg(budget),
+          }
           return (
             <li key={category.id} className="goals-progress-list__item">
               <div className="goals-progress-summary__head">
@@ -144,16 +147,14 @@ function ProgressDetails({ used, targetKg, plan, day }: ProgressDetailsProps) {
                 <StatusBadge status={categoryStatus} />
               </div>
               <ProgressBar
-                label={`${category.label} budget used`}
+                label={t('goals.progress.categoryUsed', { category: category.label })}
                 value={categoryUsed}
                 max={budget}
-                valueText={`${usedPercent(categoryUsed, budget)}% used: ${formatKg(categoryUsed)} of ${formatKg(budget)}`}
+                valueText={t('goals.progress.usedValue', values)}
                 status={categoryStatus}
                 marker={elapsed}
               />
-              <span className="goals-hint">
-                {usedPercent(categoryUsed, budget)}% · {formatKg(categoryUsed)} of {formatKg(budget)}
-              </span>
+              <span className="goals-hint">{t('goals.progress.categoryValue', values)}</span>
             </li>
           )
         })}

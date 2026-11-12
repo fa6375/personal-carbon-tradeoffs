@@ -3,6 +3,10 @@ import { Button } from '../../../components/Button'
 import { ButtonLink } from '../../../components/ButtonLink'
 import { EmptyState } from '../../../components/EmptyState'
 import { Icon } from '../../../components/Icon'
+import { isOffline } from '../../../hooks/useOnlineStatus'
+import { useI18n } from '../../../i18n'
+import type { DataErrorCode } from '../../../lib/dataErrors'
+import { dataErrorCode, dataErrorText } from '../../../lib/errorMessages'
 import { savedComparisonHref } from '../comparisonRepository'
 import {
   formatComparisonCount,
@@ -19,28 +23,34 @@ import { ConfirmDialog, LoadingState, ModeName } from './CompareUi'
 
 /** The saved comparisons list shown on the Saved comparisons page (#/saved). */
 export function SavedComparisonList() {
+  const { t } = useI18n()
   const { status, comparisons, error, reload, remove } = useSavedComparisons()
   const [toDelete, setToDelete] = useState<SavedComparison | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<DataErrorCode | 'offline' | null>(null)
 
   async function confirmDelete() {
-    if (!toDelete) return
+    if (!toDelete || deleting) return
+    if (isOffline()) {
+      setDeleteError('offline')
+      setToDelete(null)
+      return
+    }
     setDeleting(true)
     setDeleteError(null)
     try {
       await remove(toDelete.id)
-      setMessage(`“${toDelete.name}” was deleted.`)
+      setMessage(t('compare.saved.deleted', { name: toDelete.name }))
     } catch (reason) {
-      setDeleteError(reason instanceof Error ? reason.message : 'The comparison could not be deleted.')
+      setDeleteError(dataErrorCode(reason))
     } finally {
       setDeleting(false)
       setToDelete(null)
     }
   }
 
-  if (status === 'loading') return <LoadingState label="Loading saved comparisons…" />
+  if (status === 'loading') return <LoadingState label={t('compare.saved.loading')} />
 
   if (status === 'error') {
     return (
@@ -49,10 +59,10 @@ export function SavedComparisonList() {
           <Icon name="info" size={24} />
         </span>
         <div className="compare-error__body">
-          <p className="compare-error__title">Saved comparisons could not be loaded</p>
-          <p>{error}</p>
+          <p className="compare-error__title">{t('compare.saved.loadFailed')}</p>
+          <p>{dataErrorText(error ?? 'unknown')}</p>
           <div className="compare-actions compare-actions--start">
-            <Button onClick={reload}>Try again</Button>
+            <Button onClick={reload}>{t('actions.tryAgain')}</Button>
           </div>
         </div>
       </div>
@@ -71,26 +81,28 @@ export function SavedComparisonList() {
       )}
       {deleteError && (
         <p className="compare-form__summary" role="alert">
-          {deleteError}
+          {deleteError === 'offline'
+            ? t('offline.saveBlocked')
+            : t('compare.saved.deleteFailed', { error: dataErrorText(deleteError) })}
         </p>
       )}
 
       {comparisons.length === 0 ? (
         <EmptyState
           icon="bookmark"
-          title="No saved comparisons yet"
+          title={t('compare.saved.emptyTitle')}
           action={
             <ButtonLink href="#/compare" icon="arrow-right">
-              Compare a journey
+              {t('compare.saved.emptyAction')}
             </ButtonLink>
           }
         >
-          <p>When you compare a journey, choose “Save” to keep it here and open it again later.</p>
+          <p>{t('compare.saved.emptyText')}</p>
         </EmptyState>
       ) : (
         <>
           <p className="compare-muted">
-            {formatComparisonCount(comparisons.length)} saved in your account.
+            {t('compare.saved.count', { comparisons: formatComparisonCount(comparisons.length) })}
           </p>
           <ul className="compare-saved__list">
             {comparisons.map((comparison) => {
@@ -101,8 +113,13 @@ export function SavedComparisonList() {
                   <div className="compare-saved__main">
                     <h2 className="compare-saved__name">{comparison.name}</h2>
                     <p className="compare-saved__meta">
-                      {journey.from} → {journey.to} · {journey.distanceKm} km · {formatPeople(journey.passengers)} · saved{' '}
-                      {formatDateTime(comparison.savedAt)}
+                      {t('compare.saved.meta', {
+                        from: journey.from,
+                        to: journey.to,
+                        distance: journey.distanceKm,
+                        people: formatPeople(journey.passengers),
+                        date: formatDateTime(comparison.savedAt),
+                      })}
                     </p>
                     <p className="compare-saved__modes">
                       {comparison.input.modes.map((mode) => (
@@ -111,18 +128,23 @@ export function SavedComparisonList() {
                     </p>
                     {recommended && (
                       <p className="compare-saved__recommended">
-                        <strong>Recommended: {getTransportOption(recommended.mode).label}</strong> ·{' '}
-                        {formatKg(recommended.emissionsKg)} · {formatEuro(recommended.costEur)} ·{' '}
-                        {formatDuration(recommended.timeMinutes)} per person
+                        <strong>{t('compare.saved.recommended', { option: getTransportOption(recommended.mode).label })}</strong> ·{' '}
+                        {t('compare.saved.recommendedValues', {
+                          kg: formatKg(recommended.emissionsKg),
+                          cost: formatEuro(recommended.costEur),
+                          time: formatDuration(recommended.timeMinutes),
+                        })}
                       </p>
                     )}
                   </div>
                   <div className="compare-saved__actions">
                     <ButtonLink href={savedComparisonHref(comparison.id)} icon="arrow-right">
-                      Open<span className="visually-hidden"> {comparison.name}</span>
+                      {t('compare.saved.open')}
+                      <span className="visually-hidden"> {comparison.name}</span>
                     </ButtonLink>
                     <Button variant="secondary" className="compare-button--danger-outline" onClick={() => setToDelete(comparison)}>
-                      Delete<span className="visually-hidden"> {comparison.name}</span>
+                      {t('compare.saved.delete')}
+                      <span className="visually-hidden"> {comparison.name}</span>
                     </Button>
                   </div>
                 </li>
@@ -134,9 +156,9 @@ export function SavedComparisonList() {
 
       <ConfirmDialog
         open={toDelete !== null}
-        title="Delete this comparison?"
-        message={toDelete ? `“${toDelete.name}” will be permanently deleted from your account. This cannot be undone.` : ''}
-        confirmLabel="Delete comparison"
+        title={t('compare.saved.confirmTitle')}
+        message={toDelete ? t('compare.saved.confirmMessage', { name: toDelete.name }) : ''}
+        confirmLabel={t('compare.saved.confirmButton')}
         busy={deleting}
         onConfirm={confirmDelete}
         onCancel={() => setToDelete(null)}

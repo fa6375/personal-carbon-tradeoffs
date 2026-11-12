@@ -1,4 +1,6 @@
 import { Button } from '../../../components/Button'
+import { useI18n } from '../../../i18n'
+import { RichText } from '../../../i18n/RichText'
 import { CRITERIA } from '../criteria'
 import {
   formatDuration,
@@ -22,12 +24,6 @@ interface ComparisonResultsProps {
   onScenario: () => void
 }
 
-const BEST_LABEL: Record<Criterion, string> = {
-  emissions: 'Lowest CO₂',
-  cost: 'Cheapest',
-  time: 'Fastest',
-}
-
 const VALUE: Record<Criterion, (option: OptionResult) => number> = {
   emissions: (option) => option.emissionsKg,
   cost: (option) => option.costEur,
@@ -48,6 +44,7 @@ const FORMAT_DIFFERENCE: Record<Criterion, (value: number) => string> = {
 
 /** Screen 5 — Comparison results. */
 export function ComparisonResults({ result, onRecommendation, onBreakdown, onScenario }: ComparisonResultsProps) {
+  const { t } = useI18n()
   const { journey } = result.input
   const ranked = rankOptions(result.options)
   const recommended = findOption(result, result.recommended)
@@ -59,11 +56,11 @@ export function ComparisonResults({ result, onRecommendation, onBreakdown, onSce
           {journey.from} → {journey.to}
         </strong>
         <span>
-          {journey.distanceKm} km · {formatPeople(journey.passengers)} · estimates per person
+          {t('compare.results.summary', { distance: journey.distanceKm, people: formatPeople(journey.passengers) })}
         </span>
       </p>
 
-      <ul className="compare-cards" aria-label="Options, best match first">
+      <ul className="compare-cards" aria-label={t('compare.results.optionsLabel')}>
         {ranked.map((option) => {
           const isRecommended = option.mode === result.recommended
           const bestOn = CRITERIA.filter(({ id }) => isBestOn(result, option.mode, id))
@@ -71,20 +68,24 @@ export function ComparisonResults({ result, onRecommendation, onBreakdown, onSce
             <li key={option.mode}>
               <article
                 className={`compare-card${isRecommended ? ' compare-card--recommended' : ''}`}
-                aria-label={`${isRecommended ? 'Recommended: ' : ''}${getTransportOption(option.mode).label}`}
+                aria-label={
+                  isRecommended
+                    ? t('compare.results.recommendedLabel', { option: getTransportOption(option.mode).label })
+                    : getTransportOption(option.mode).label
+                }
               >
                 <div className="compare-card__header">
                   <h3 className="compare-card__title">
                     <ModeName mode={option.mode} />
                   </h3>
-                  <span className="compare-card__match">{formatPercent(option.overallScore)} match</span>
+                  <span className="compare-card__match">{t('compare.results.match', { percent: formatPercent(option.overallScore) })}</span>
                 </div>
                 {(isRecommended || bestOn.length > 0) && (
                   <p className="compare-card__badges">
-                    {isRecommended && <Badge tone="recommended">★ Recommended</Badge>}
+                    {isRecommended && <Badge tone="recommended">{t('compare.results.recommended')}</Badge>}
                     {bestOn.map(({ id }) => (
                       <Badge key={id} tone="best">
-                        ✓ {BEST_LABEL[id]}
+                        ✓ {t(`compare.results.best.${id}`)}
                       </Badge>
                     ))}
                   </p>
@@ -105,8 +106,8 @@ export function ComparisonResults({ result, onRecommendation, onBreakdown, onSce
 
       <Panel
         id="compare-bars-title"
-        title="Side by side"
-        description="Shorter bars are better. Each bar is relative to the highest value for that criterion."
+        title={t('compare.results.sideBySide')}
+        description={t('compare.results.sideBySideDescription')}
       >
         <div className="compare-bar-groups">
           {CRITERIA.map((criterion) => {
@@ -125,13 +126,17 @@ export function ComparisonResults({ result, onRecommendation, onBreakdown, onSce
                         <ModeName mode={option.mode} size={14} />
                         <span className="compare-bar__value">
                           {text}
-                          {isBest && <span className="compare-bar__best"> · best</span>}
+                          {isBest && <span className="compare-bar__best">{t('compare.results.bestSuffix')}</span>}
                         </span>
                       </div>
                       <div
                         className="compare-bar__track"
                         role="img"
-                        aria-label={`${criterion.label}, ${getTransportOption(option.mode).label}: ${text}${isBest ? ', best' : ''}`}
+                        aria-label={t(isBest ? 'compare.results.barLabelBest' : 'compare.results.barLabel', {
+                          criterion: criterion.label,
+                          option: getTransportOption(option.mode).label,
+                          value: text,
+                        })}
                       >
                         <div
                           className={`compare-bar__fill compare-bar__fill--${criterion.id}`}
@@ -149,28 +154,26 @@ export function ComparisonResults({ result, onRecommendation, onBreakdown, onSce
 
       <Panel
         id="compare-table-title"
-        title="Differences from the recommended option"
+        title={t('compare.results.differences')}
         description={
-          <>
-            Compared with <strong>{getTransportOption(recommended.mode).label}</strong>. A plus sign means more
-            CO₂, a higher cost or a longer trip.
-          </>
+          <RichText
+            text={t('compare.results.differencesDescription')}
+            values={{ option: <strong>{getTransportOption(recommended.mode).label}</strong> }}
+          />
         }
       >
         <div className="compare-table-wrap">
           <table className="compare-table">
-            <caption className="visually-hidden">
-              CO₂, cost and travel time for each option, with the difference from the recommended option
-            </caption>
+            <caption className="visually-hidden">{t('compare.results.tableCaption')}</caption>
             <thead>
               <tr>
-                <th scope="col">Option</th>
+                <th scope="col">{t('compare.results.option')}</th>
                 {CRITERIA.map((criterion) => (
                   <th key={criterion.id} scope="col">
                     {criterion.label}
                   </th>
                 ))}
-                <th scope="col">Match</th>
+                <th scope="col">{t('compare.results.matchColumn')}</th>
               </tr>
             </thead>
             <tbody>
@@ -205,13 +208,13 @@ export function ComparisonResults({ result, onRecommendation, onBreakdown, onSce
 
       <div className="compare-actions">
         <Button variant="secondary" onClick={onBreakdown}>
-          How this was calculated
+          {t('compare.results.howCalculated')}
         </Button>
         <Button variant="secondary" onClick={onScenario}>
-          Try another scenario
+          {t('compare.results.tryScenario')}
         </Button>
         <Button icon="star" onClick={onRecommendation}>
-          See recommendation
+          {t('compare.results.seeRecommendation')}
         </Button>
       </div>
     </div>

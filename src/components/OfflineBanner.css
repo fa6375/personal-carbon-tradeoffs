@@ -1,0 +1,32 @@
+.offline-banner__region:empty {
+  display: none;
+}
+
+.offline-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 550;
+}
+
+.offline-banner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.offline-banner--offline {
+  background: #fdf1e2;
+  border-color: #f1d3a8;
+  color: #7a4300;
+}
+
+.offline-banner--online {
+  background: var(--color-primary-softer);
+  border-color: var(--color-primary-soft);
+  color: var(--color-primary-text);
+}

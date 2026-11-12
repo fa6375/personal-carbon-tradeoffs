@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useHashRoute, type ResolvedRoute } from './hooks/useHashRoute'
+import { useI18n, type MessageKey } from './i18n'
 import { AppLayout } from './layouts/AppLayout'
 import { LocalImportPanel } from './features/account/LocalImportPanel'
 import { RequireAuth } from './features/auth/RequireAuth'
@@ -12,18 +13,18 @@ import { SavedPage } from './pages/SavedPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TrackingPage } from './pages/TrackingPage'
 
-const PAGE_TITLES: Record<ResolvedRoute, string> = {
-  home: 'Home',
-  compare: 'Compare journeys',
-  saved: 'Saved comparisons',
-  goals: 'Carbon goals',
-  tracking: 'Carbon tracking',
-  account: 'Account',
-  settings: 'Settings',
-  'not-found': 'Page not found',
+const PAGE_TITLES: Record<ResolvedRoute, MessageKey> = {
+  home: 'nav.home',
+  compare: 'nav.compare',
+  saved: 'nav.saved',
+  goals: 'nav.goals',
+  tracking: 'nav.tracking',
+  account: 'nav.account',
+  settings: 'nav.settings',
+  'not-found': 'nav.notFound',
 }
 
-function renderPage(route: ResolvedRoute) {
+function renderPage(route: ResolvedRoute, t: ReturnType<typeof useI18n>['t']) {
   switch (route) {
     case 'home':
       return <HomePage />
@@ -31,20 +32,20 @@ function renderPage(route: ResolvedRoute) {
       return <ComparePage />
     case 'saved':
       return (
-        <RequireAuth title="Saved comparisons" reason="Sign in to see the comparisons you have saved.">
+        <RequireAuth title={t('auth.gate.savedTitle')} reason={t('auth.gate.savedReason')}>
           <LocalImportPanel />
           <SavedPage />
         </RequireAuth>
       )
     case 'goals':
       return (
-        <RequireAuth title="Carbon reduction goals" reason="Sign in to create your carbon plan and keep it in your account.">
+        <RequireAuth title={t('auth.gate.goalsTitle')} reason={t('auth.gate.goalsReason')}>
           <GoalsPage />
         </RequireAuth>
       )
     case 'tracking':
       return (
-        <RequireAuth title="Personal carbon tracking" reason="Sign in to record your activities and see your emissions.">
+        <RequireAuth title={t('auth.gate.trackingTitle')} reason={t('auth.gate.trackingReason')}>
           <LocalImportPanel />
           <TrackingPage />
         </RequireAuth>
@@ -60,11 +61,15 @@ function renderPage(route: ResolvedRoute) {
 
 function App() {
   const route = useHashRoute()
+  // App reads the language, so the whole tree re-renders (keeping its state) when it changes.
+  const { t } = useI18n()
   const isFirstRender = useRef(true)
 
   useEffect(() => {
-    document.title = `${PAGE_TITLES[route]} · Carbon Choices`
+    document.title = `${t(PAGE_TITLES[route])} · ${t('app.titleSuffix')}`
+  }, [route, t])
 
+  useEffect(() => {
     // After client-side navigation, move focus to the new page's heading so
     // screen reader and keyboard users land at the start of the new content.
     if (isFirstRender.current) {
@@ -75,7 +80,7 @@ function App() {
     document.querySelector<HTMLElement>('main h1')?.focus()
   }, [route])
 
-  return <AppLayout activeRoute={route}>{renderPage(route)}</AppLayout>
+  return <AppLayout activeRoute={route}>{renderPage(route, t)}</AppLayout>
 }
 
 export default App

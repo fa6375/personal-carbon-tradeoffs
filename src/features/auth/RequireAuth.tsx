@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { PageHeader } from '../../components/PageHeader'
-import { DEFAULT_ERROR_MESSAGES } from '../../lib/errorMessages'
+import { useI18n } from '../../i18n'
+import { dataErrorText } from '../../lib/errorMessages'
 import { AuthForm } from './AuthForm'
 import { useAuth } from './authContext'
 import './auth.css'
@@ -20,17 +21,20 @@ export function RequireAuth({ title, reason, children }: RequireAuthProps) {
   return (
     <div className="auth-page">
       <PageHeader title={title} />
-      <Gate status={status} reason={reason} />
+      <AuthGate status={status} reason={reason} />
     </div>
   )
 }
 
-function Gate({ status, reason }: { status: ReturnType<typeof useAuth>['status']; reason: string }) {
+/** Loading, "not configured" and signed-out states, shared with the Account page. */
+export function AuthGate({ status, reason }: { status: ReturnType<typeof useAuth>['status']; reason?: string }) {
+  const { t } = useI18n()
+
   if (status === 'loading') {
     return (
       <div className="auth-status" role="status">
         <span className="auth-status__spinner" aria-hidden="true" />
-        Checking your sign-in…
+        {t('auth.checking')}
       </div>
     )
   }
@@ -38,8 +42,8 @@ function Gate({ status, reason }: { status: ReturnType<typeof useAuth>['status']
   if (status === 'not-configured') {
     return (
       <div className="auth-panel auth-panel--warning" role="alert">
-        <p className="auth-panel__title">Database not configured</p>
-        <p>{DEFAULT_ERROR_MESSAGES['not-configured']}</p>
+        <p className="auth-panel__title">{t('errors.notConfiguredTitle')}</p>
+        <p>{dataErrorText('not-configured')}</p>
       </div>
     )
   }
@@ -47,7 +51,7 @@ function Gate({ status, reason }: { status: ReturnType<typeof useAuth>['status']
   if (status === 'signed-out') {
     return (
       <div className="auth-gate">
-        <p className="auth-gate__reason">{reason}</p>
+        {reason && <p className="auth-gate__reason">{reason}</p>}
         <AuthForm />
       </div>
     )
