@@ -1,13 +1,14 @@
 import type { NavItem, RouteId } from '../types/navigation'
 
+/** Labels are translation keys (nav.*), translated where they are shown. */
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home', href: '#/', icon: 'home' },
-  { id: 'compare', label: 'Compare journeys', href: '#/compare', icon: 'compare' },
-  { id: 'saved', label: 'Saved comparisons', href: '#/saved', icon: 'bookmark' },
-  { id: 'goals', label: 'Carbon goals', href: '#/goals', icon: 'target' },
-  { id: 'tracking', label: 'Carbon tracking', href: '#/tracking', icon: 'activity' },
-  { id: 'account', label: 'Account', href: '#/account', icon: 'user' },
-  { id: 'settings', label: 'Settings', href: '#/settings', icon: 'settings' },
+  { id: 'home', labelKey: 'nav.home', href: '#/', icon: 'home' },
+  { id: 'compare', labelKey: 'nav.compare', href: '#/compare', icon: 'compare' },
+  { id: 'saved', labelKey: 'nav.saved', href: '#/saved', icon: 'bookmark' },
+  { id: 'goals', labelKey: 'nav.goals', href: '#/goals', icon: 'target' },
+  { id: 'tracking', labelKey: 'nav.tracking', href: '#/tracking', icon: 'activity' },
+  { id: 'account', labelKey: 'nav.account', href: '#/account', icon: 'user' },
+  { id: 'settings', labelKey: 'nav.settings', href: '#/settings', icon: 'settings' },
 ]
 
 /** Maps the part of the hash after "#/" to a route. */

@@ -1,5 +1,6 @@
 import { NAV_ITEMS } from '../data/navigation'
 import type { ResolvedRoute } from '../hooks/useHashRoute'
+import { useI18n } from '../i18n'
 import { Icon } from './Icon'
 import './NavList.css'
 
@@ -10,6 +11,7 @@ interface NavListProps {
 }
 
 export function NavList({ activeRoute, onNavigate }: NavListProps) {
+  const { t } = useI18n()
   return (
     <ul className="nav-list">
       {NAV_ITEMS.map((item) => {
@@ -23,7 +25,7 @@ export function NavList({ activeRoute, onNavigate }: NavListProps) {
               onClick={onNavigate}
             >
               <Icon name={item.icon} size={20} />
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </a>
           </li>
         )

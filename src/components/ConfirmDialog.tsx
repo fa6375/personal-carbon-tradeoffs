@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
+import { useI18n } from '../i18n'
 import { Button } from './Button'
 import './ConfirmDialog.css'
 
@@ -7,6 +8,7 @@ interface ConfirmDialogProps {
   title: string
   message: string
   confirmLabel: string
+  /** Text on the confirm button while busy. Defaults to "Deleting…". */
   busyLabel?: string
   busy?: boolean
   onConfirm: () => void
@@ -22,12 +24,17 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel,
-  busyLabel = 'Deleting…',
+  busyLabel,
   busy = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useI18n()
   const ref = useRef<HTMLDialogElement>(null)
+  // Unique ids, so two dialogs on one page never share their labels.
+  const id = useId()
+  const titleId = `${id}-title`
+  const messageId = `${id}-message`
 
   useEffect(() => {
     const dialog = ref.current
@@ -40,23 +47,23 @@ export function ConfirmDialog({
     <dialog
       ref={ref}
       className="confirm-dialog"
-      aria-labelledby="confirm-dialog-title"
-      aria-describedby="confirm-dialog-message"
+      aria-labelledby={titleId}
+      aria-describedby={messageId}
       onCancel={(event) => {
         event.preventDefault()
         if (!busy) onCancel()
       }}
     >
-      <h2 id="confirm-dialog-title" className="confirm-dialog__title">
+      <h2 id={titleId} className="confirm-dialog__title">
         {title}
       </h2>
-      <p id="confirm-dialog-message">{message}</p>
+      <p id={messageId}>{message}</p>
       <div className="confirm-dialog__actions">
         <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
-          Cancel
+          {t('actions.cancel')}
         </Button>
-        <Button className="confirm-dialog__danger" onClick={onConfirm} disabled={busy}>
-          {busy ? busyLabel : confirmLabel}
+        <Button className="confirm-dialog__danger" onClick={onConfirm} disabled={busy} aria-busy={busy || undefined}>
+          {busy ? (busyLabel ?? t('actions.deleting')) : confirmLabel}
         </Button>
       </div>
     </dialog>

@@ -1,15 +1,13 @@
+import { useI18n } from '../i18n'
 import './Footer.css'
 
 export function Footer() {
+  const { t } = useI18n()
   const year = new Date().getFullYear()
   return (
     <footer className="footer">
-      <p>
-        © {year} Carbon Choices · Course project for ISTE.260 Designing the User Experience
-      </p>
-      <p className="footer__note">
-        Early preview. No live data is shown yet.
-      </p>
+      <p>{t('app.footer', { year: String(year) })}</p>
+      <p className="footer__note">{t('app.footerNote')}</p>
     </footer>
   )
 }
